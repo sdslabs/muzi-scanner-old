@@ -1,6 +1,7 @@
 GEM
   remote: http://rubygems.org/
   specs:
+    ImageResize (0.0.5)
     activemodel (3.0.10)
       activesupport (= 3.0.10)
       builder (~> 2.1.2)
@@ -25,6 +26,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  ImageResize (~> 0.0.5)
   activerecord
   imagesize (~> 0.1.1)
   logger
