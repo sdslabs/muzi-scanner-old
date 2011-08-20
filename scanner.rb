@@ -1,5 +1,6 @@
-require "mp3info"
 require 'rubygems'
+require 'active_record'
+require "mp3info"
 require 'image_size'
 
 class Track
