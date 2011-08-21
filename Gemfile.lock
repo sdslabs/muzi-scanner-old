@@ -1,7 +1,6 @@
 GEM
   remote: http://rubygems.org/
   specs:
-    ImageResize (0.0.5)
     activemodel (3.0.10)
       activesupport (= 3.0.10)
       builder (~> 2.1.2)
@@ -15,10 +14,10 @@ GEM
     arel (2.0.10)
     builder (2.1.2)
     i18n (0.5.0)
-    imagesize (0.1.1)
     logger (1.2.8)
     mysql (2.8.1)
     mysql2 (0.2.7)
+    rmagick (2.13.1)
     ruby-mp3info (0.6.15)
     tzinfo (0.3.29)
 
@@ -26,10 +25,9 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  ImageResize (~> 0.0.5)
   activerecord
-  imagesize (~> 0.1.1)
   logger
   mysql
   mysql2 (= 0.2.7)
+  rmagick (~> 2.13.1)
   ruby-mp3info
