@@ -53,7 +53,7 @@ for file in  Dir["**/*.{m,M}{P,p}3"]
 		if (!File.exists?(img_file))  ||  File.symlink?(img_file)	#If there is no such album art or the file is a symlink
 			pics=pic_data mp3info.tag2.APIC	#Call our pic_data function, and get an array of pic data
 			if pics.nil? || pics.empty?	#Empty array = no album art
-				File.symlink(root+'/unknown.jpg',img_file)  unless File.exists?(img_file) 	#Symlink the unknown pic
+				#File.symlink(root+'/unknown.jpg',img_file)  unless File.exists?(img_file) 	#Symlink the unknown pic
 			else
 				#Store it temporarily
 				f = File.new('/tmp/muzi_pic','w')
