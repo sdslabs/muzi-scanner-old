@@ -8,7 +8,8 @@ def pic_data(apic)
 		end
 		return pic_data_apic
 	end
-end	
+end
+
 	#Disabling the folder pics because it might lead to some
 	#very bad situations with multiple albums with some
 	#random pic
