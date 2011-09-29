@@ -31,7 +31,12 @@ i=0
 Dir.chdir(music_root)
 for file in  Dir["**/*.{m,M}{P,p}3"]
 	language =  file.split('/').first()
-	mp3info = Mp3Info.open(file)
+    begin
+    	mp3info = Mp3Info.open(file)
+    rescue
+        puts "Error in scanning song"
+        next
+    end
 	track = Track.find_by_file(mp3info.filename)
 	if track.blank?	#If no such track in database
 		track = Track.new(
