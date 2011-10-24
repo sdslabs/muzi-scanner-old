@@ -8,3 +8,19 @@ def getGenre(string)
 		return string
 	end
 end
+# Copied from Rails
+# https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/object/blank.rb
+class String #:nodoc:
+  def blank?
+      self !~ /\S/
+  end
+  #http://stackoverflow.com/questions/971026/how-do-i-write-a-regular-expression-for-a-url-without-the-scheme
+  def stripUrl
+   # var regex=/^[A-Za-z\d][\w.-]+(:\d+)?(/.*)?$/
+    
+  end
+end
+
+def stripUrl(string)
+    
+end

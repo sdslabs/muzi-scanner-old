@@ -39,16 +39,27 @@ for file in  Dir["**/*.{m,M}{P,p}3"]
     end
 	track = Track.find_by_file(mp3info.filename)
 	if track.blank?	#If no such track in database
+		#Prepare the track details
+		title = mp3info.tag.title || mp3info.tag2.TT2 || File.basename(file,".mp3")
+		album = mp3info.tag.album || mp3info.tag2.TAL
+		album = album.blank? ? "Unknown Album" : album
+		genre = getGenre(mp3info.tag.genre_s) || "Unknown Genre"
+		year  = mp3info.tag1.year || mp3info.tag2.TDAT || mp3info.tag2.TDRC || mp3info.tag2.TORY || 2000
+		artist= mp3info.tag.artist || mp3info.tag2.TP1 || "Unknown Artist"
+		artist= artist.blank? ? "Unknown Artist" : artist
+		band  = mp3info.tag2.TPE2  || mp3info.tag2.TP2 || mp3info.tag2.ALBUMARTIST || mp3info.tag.artist || "Unkown Artist"
+		band  = band.blank? ? "Unknown Artist" : band
+		#Creat a nwe track
 		track = Track.new(
 			# Each || offers an alternative, some ternary for cases where it may not exist
-			:file	=>	mp3info.filename,
+			:file	=> mp3info.filename,
 			:title	=> mp3info.tag.title || mp3info.tag2.TT2 || File.basename(file,".mp3"),
-			:album	=> Album.find_or_create_by_name_and_language(mp3info.tag.album || mp3info.tag2.TAL || "Unknown Album",language),
-			:genre	=> Genre.find_or_create_by_name(getGenre(mp3info.tag.genre_s) || "Unknown Genre"),
-			:year	=> Year.find_or_create_by_name(mp3info.tag1.year || mp3info.tag2.TDAT || mp3info.tag2.TDRC || mp3info.tag2.TORY || 2000),
-			:artist	=> mp3info.tag.artist || mp3info.tag2.TP1 || "Unknown Artist",
+			:album	=> Album.find_or_create_by_name_and_language(album,language),
+			:genre	=> Genre.find_or_create_by_name(genre),
+			:year	=> Year.find_or_create_by_name(year),
+			:artist	=> artist,
 			:track	=> mp3info.tag.tracknum  || ( mp3info.tag2.TRCK ? mp3info.tag2.TRCK.split('/').first	 : 0 ) ||  0,
-			:band	=> Band.find_or_create_by_name_and_language(  mp3info.tag2.TPE2  || mp3info.tag2.TP2 || mp3info.tag2.ALBUMARTIST || mp3info.tag.artist || "Unkown Artist",language), #Also called the Album Artist/Band
+			:band	=> Band.find_or_create_by_name_and_language(band,language), #Also called the Album Artist/Band
 			:plays	=> 0,
 			:length	=> mp3info.length
 		)
