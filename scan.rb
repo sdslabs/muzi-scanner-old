@@ -49,6 +49,7 @@ for file in  Dir["**/*.{m,M}{P,p}3"]
 		artist= artist.blank? ? "Unknown Artist" : artist
 		band  = mp3info.tag2.TPE2  || mp3info.tag2.TP2 || mp3info.tag2.ALBUMARTIST || mp3info.tag.artist || "Unkown Artist"
 		band  = band.blank? ? "Unknown Artist" : band
+        genre = genre.blank? ? "Unknown Genre" : genre
 		#Creat a nwe track
 		track = Track.new(
 			# Each || offers an alternative, some ternary for cases where it may not exist
