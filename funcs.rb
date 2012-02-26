@@ -11,6 +11,7 @@ end
 # Copied from Rails
 # https://github.com/rails/rails/blob/master/activesupport/lib/active_support/core_ext/object/blank.rb
 class String #:nodoc:
+  #This is a simple method to test if a string contains a whitespace
   def blank?
       self !~ /\S/
   end

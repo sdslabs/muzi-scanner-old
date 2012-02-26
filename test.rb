@@ -1,13 +1,21 @@
 #!/usr/bin/env ruby
 require 'rubygems'	#Gem Support
-require "mp3info"	#reading id3 tags
-require 'yaml'
-mp3info = Mp3Info.open('/media/Entertainment/Music/muzi_test/English/Rammstein/Sehnsucht/05 Du Hast.mp3')
+require "audioinfo"	#reading id3 tags
+require "audioinfo/album"	#reading id3 tags
+#require 'yaml'
 
-puts mp3info.to_yaml
+Album = AudioInfo::Album.new(ARGV[0])
+
+Album.files.each do |track|
+	case track.extension
+		when 'm4a'
+			puts track.title
+		when 'mp3'
+			puts track.title
+	end
+end
+#puts mp3info.files.class.nameto_yaml
 #http://www.multimediasoft.com/amp3dj/help/index.html?amp3dj_00003e.htm
-
-
 
 def getGenre(string)
 	return "Unknown Genre" if (string == null)
@@ -20,4 +28,4 @@ def getGenre(string)
 	end
 end
 
-puts getGenre "(34)asdsad"
+#puts getGenre "(34)asdsad"

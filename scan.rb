@@ -16,7 +16,13 @@ require 'modules'	#Some custom functions
 include Magick		#RMagick module
 
 root = Dir.pwd	#Current directory
-music_root = ARGV[0] || '/media/Entertainment/Music/muzi_test/'	#Read from command line
+music_root = ARGV[0] || '/media/Entertainment/Music/'	#Read from command line
+'''
+The music prefix is put before all queries to the database
+This is done as the procedure of adding hindi & non-hindi songs
+is quite different
+'''
+music_prefix = ARGV[1] || 'English/'
 puts "Please wait, scanning directory"
 
 #Setup database
@@ -28,8 +34,9 @@ ActiveRecord::Base.logger.formatter = proc { |severity, datetime, progname, msg|
   "#{msg}\n"
 }
 i=0
+
 Dir.chdir(music_root)
-for file in  Dir["**/*.{m,M}{P,p}3"]
+for file in  Dir["**/*.{m,M}{P,p,4}{3,a}"]
 	language =  file.split('/').first()
     begin
     	mp3info = Mp3Info.open(file)
