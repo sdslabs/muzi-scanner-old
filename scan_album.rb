@@ -49,10 +49,12 @@ album_folder = File.basename ARGV[0]
 	#puts Album.title + " v/s " + File.basename(ARGV[0])
 
 #end
+puts "MUSIC ROOT: " + music_root
 
 album.files.each do |track|
 	puts track.path
-	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s.gsub('/','\\')
+	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s.gsub('/',"\\")
+	puts filename_in_database
 	next if Track.find_by_file filename_in_database
 	album_title = album.title.empty? ? album_folder : album.title
 	if track.info
