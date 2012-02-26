@@ -5,9 +5,9 @@ require "audioinfo/album"	#reading id3 tags
 #require 'yaml'
 
 Album = AudioInfo::Album.new(ARGV[0])
+#Check if the album is empty
+return if Album.empty?
 
-Album.files.each do |track|
-	puts " - " + track.title
-	title = track.tag.title || track.tag2.TT2 || File.basename(track.filename,"."+track.extension)
-	
+if Album.title != File.basename(ARGV[0])
+	puts Album.title + " v/s " + File.basename(ARGV[0])
 end
