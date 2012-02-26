@@ -36,7 +36,7 @@ Dir.chdir(ARGV[0])
 music_root =  File.expand_path "../../..", ARGV[0]
 
 #The language is passed as the second argument
-language = ARGV[1]
+language = "English"
 
 #Get the band name from parent folder
 band_name = File.basename File.expand_path "..", ARGV[0]
@@ -53,7 +53,7 @@ puts "MUSIC ROOT: " + music_root
 
 album.files.each do |track|
 	puts track.path
-	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s.gsub('/',"\\")
+	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root))
 	puts filename_in_database
 	next if Track.find_by_file filename_in_database
 	album_title = album.title.empty? ? album_folder : album.title
@@ -78,5 +78,5 @@ album.files.each do |track|
 		:length	=> track.length
 	)
 	track.save
-	puts track.title
+	puts "Saved:" track.title
 end
