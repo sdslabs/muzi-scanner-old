@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 require 'rubygems'	#Gem Support
-require "audioinfo"	#reading id3 tags
-require "audioinfo/album"	#reading id3 tags
+require "vendor/ruby-audioinfo/lib/audioinfo.rb"	#reading id3 tags
+require "vendor/ruby-audioinfo/lib/audioinfo/album.rb"	#reading id3 tags
 require 'pathname'
 require 'active_record'#ORM
 require 'logger'	#database.log
