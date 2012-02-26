@@ -21,7 +21,7 @@ exit if album.empty?
 
 dbconfig = YAML::load(File.open('database.yml'))
 ActiveRecord::Base.establish_connection(dbconfig)
-ActiveRecord::Base.logger = Logger.new(File.open('database.log', 'w'))
+ActiveRecord::Base.logger = Logger.new(File.open('database.log', 'a'))
 ActiveSupport::LogSubscriber.colorize_logging=false
 ActiveRecord::Base.logger.formatter = proc { |severity, datetime, progname, msg|
   "#{msg}\n"
@@ -53,7 +53,7 @@ puts "MUSIC ROOT: " + music_root
 
 album.files.each do |track|
 	puts track.path
-	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root))
+	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s
 	puts filename_in_database
 	next if Track.find_by_file filename_in_database
 	album_title = album.title.empty? ? album_folder : album.title
@@ -78,5 +78,5 @@ album.files.each do |track|
 		:length	=> track.length
 	)
 	track.save
-	puts "Saved:" track.title
+	puts "Saved:" +track.title
 end
