@@ -41,6 +41,9 @@ language = ARGV[1]
 #Get the band name from parent folder
 band_name = File.basename File.expand_path "..", ARGV[0]
 
+#The album alternative name is the name of the current folder
+album_folder = File.basename ARGV[0]
+
 #Conflict in Album titles
 #if album.title != File.basename(ARGV[0])
 	#puts Album.title + " v/s " + File.basename(ARGV[0])
@@ -49,34 +52,29 @@ band_name = File.basename File.expand_path "..", ARGV[0]
 
 album.files.each do |track|
 	puts track.path
-	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s
+	filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s.gsub('/','\\')
 	next if Track.find_by_file filename_in_database
 	album_title = album.title.empty? ? album_folder : album.title
-	puts track.to_yaml
-	puts track.vbr
-	puts track.info
-	exit
-	if track.responds_to 'info'
+	if track.info
 		year  = track.info.tag1.year || track.info.tag2.TDAT || track.info.tag2.TDRC || track.info.tag2.TORY || 2000
 	else
 		year = 2000
 	end
-	put year
-	artist= track.tag.artist || track.tag2.TP1 || "Unknown Artist"
-	genre = getGenre(track.tag.genre_s) || "Unknown Genre"
+	artist= track.artist || track.info.tag.artist || track.info.tag2.TP1 || "Unknown Artist"
+	genre = getGenre(track.info.tag.genre_s) || "Unknown Genre"
 	track = Track.new(
 		# Each || offers an alternative, some ternary for cases where it may not exist
-		:file	=> track.path,
-		:title	=> track.title || track.tag.title || track.tag2.TT2 || File.basename(track.path,"."+track.extension),
+		:file	=> filename_in_database,
+		:title	=> track.title || track.info.tag.title || track.info.tag2.TT2 || File.basename(track.path,"."+track.extension),
 		:album	=> Album.find_or_create_by_name_and_language(album_title,language),
 		:genre	=> Genre.find_or_create_by_name(genre),
 		:year	=> Year.find_or_create_by_name(year),
 		:artist	=> artist,
-		:track	=> track.tag.tracknum  || ( track.tag2.TRCK ? track.tag2.TRCK.split('/').first	 : 0 ) ||  0,
+		:track	=> track.info.tag.tracknum  || ( track.info.tag2.TRCK ? track.info.tag2.TRCK.split('/').first	 : 0 ) ||  0,
 		:band	=> Band.find_or_create_by_name_and_language(band_name,language), #Also called the Album Artist/Band
 		:plays	=> 0,
 		:length	=> track.length
 	)
 	track.save
-	put track.title
+	puts track.title
 end

@@ -2,17 +2,12 @@
 require 'rubygems'	#Gem Support
 require "audioinfo"	#reading id3 tags
 require "audioinfo/album"	#reading id3 tags
-#require 'yaml'
+require 'yaml'
 
 Album = AudioInfo::Album.new(ARGV[0])
 
 Album.files.each do |track|
-	case track.extension
-		when 'm4a'
-			puts track.title
-		when 'mp3'
-			puts track.title
-	end
+	puts track.length
 end
 #puts mp3info.files.class.nameto_yaml
 #http://www.multimediasoft.com/amp3dj/help/index.html?amp3dj_00003e.htm
