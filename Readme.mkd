@@ -1,2 +1,9 @@
 #muzi-scanner
 The muzi-scanner script, implemented in both PHP, Ruby
+
+This is used for scanning english files into muzi
+
+Just run ./scan.sh /path/to/English 
+
+This in turns creates a `album_path.txt` file which is then read by scan.rb 
+line by line and scanned.

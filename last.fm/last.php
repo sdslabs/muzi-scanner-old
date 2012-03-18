@@ -1,6 +1,7 @@
 <?php
-	$dirlist = scandir("/home/pranav/.gvfs/SFTP for sdslabs on 192.168.208.206/media/Data/Muzi/English");
-	chdir("/home/pranav/.gvfs/SFTP for sdslabs on 192.168.208.206/media/Data/Muzi/English");
+	echo $argv[1];
+	$dirlist = scandir($argv[1]);
+	chdir($argv[1]);
 	foreach ($dirlist as $v){if($v != "." && $v != ".."){
 		$dir = scandir($v);
 		foreach ($dir as $a){if($a != "." && $a != ".."){
@@ -18,9 +19,9 @@
 						$ext = explode(".",strrev($picurl));
 						$ext = strrev($ext[0]);
 						
-						$addr = escapeshellarg("/home/pranav/.gvfs/SFTP for sdslabs on 192.168.208.206/media/Data/Muzi/English/".$v."/".$a."/lastfm_cover.".$ext);
+						$addr = escapeshellarg($argv[1].$v."/".$a."/lastfm_cover.".$ext);
 						`wget -O $addr "$picurl"`;
-						echo "saving to /media/Data/Muzi/English/".$v."/".$a."/lastfm_cover.".$ext."\n\n";
+//						echo "saving to /media/Data/Muzi/English/".$v."/".$a."/lastfm_cover.".$ext."\n\n";
 					}}
 					else{
 						echo "album not found\n";

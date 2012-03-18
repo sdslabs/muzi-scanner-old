@@ -1,13 +1,13 @@
 #!/usr/bin/env ruby
 require 'rubygems'	#Gem Support
-require "audioinfo"	#reading id3 tags
-require "audioinfo/album"	#reading id3 tags
+require "vendor/ruby-audioinfo/lib/audioinfo.rb"	#reading id3 tags
+require "vendor/ruby-audioinfo/lib/audioinfo/album.rb"	#reading id3 tags
 require 'yaml'
 
 Album = AudioInfo::Album.new(ARGV[0])
 
 Album.files.each do |track|
-	puts track.length
+	puts track.info.tag.title
 end
 #puts mp3info.files.class.nameto_yaml
 #http://www.multimediasoft.com/amp3dj/help/index.html?amp3dj_00003e.htm
