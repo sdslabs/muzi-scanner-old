@@ -25,7 +25,7 @@ puts "initialized database"
 pics_folder=ARGV[0]
 exit if pics_folder.length==0
 lastfm = Lastfm.new("1046bf7d632bb797c7d3430962cc2549", "a973b39e259ec530d08d0daad7ac718d")
-Album.all(:conditions => { :language => 'English' }).each do |album|
+Album.all(:conditions => { :language => 'English' }, :order=>"id DESC").each do |album|
 	puts album.name
 	next if File.exist?("#{pics_folder}/#{album.id}.jpg")
 	bandName = Band.find(Track.find_by_album(album.id).band).name
@@ -39,7 +39,7 @@ Album.all(:conditions => { :language => 'English' }).each do |album|
 		if img["size"]=='large' and img['content']
 			puts img["content"]
 			filename = "#{pics_folder}/#{album.id}.jpg"
-			`wget "#{img["content"]}" -O #{filename}`
+			`wget -nv "#{img["content"]}" -O #{filename}`
 		end
 	end
 end
