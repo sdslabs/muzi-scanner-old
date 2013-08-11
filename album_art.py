@@ -27,10 +27,8 @@ except Exception:
 
 cursor = db.cursor()
 cursor.execute('SELECT * FROM albums WHERE language=\'English\'')
-result = cursor.fetchall();
+result = cursor.fetchall()
 errors = []
-
-print result
 
 for row in result:
     try:
