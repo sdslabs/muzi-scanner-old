@@ -15,7 +15,7 @@ network = pylast.get_lastfm_network(API_KEY, API_SECRET)
 
 print "Initialized all modules"
 
-dbconfig = yaml.load(open('database.yml', 'r'))
+dbconfig = yaml.load(open('../database.yml', 'r'))
 db = MySQLdb.connect(dbconfig['host'], dbconfig['username'], dbconfig['password'], dbconfig['database'])
 
 print "Initialized database"
