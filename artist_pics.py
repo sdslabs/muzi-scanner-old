@@ -22,7 +22,7 @@ except Exception:
     raise SystemExit
 
 cursor = db.cursor()
-cursor.execute('SELECT * FROM bands WHERE language=\'English\'')
+cursor.execute('SELECT * FROM bands WHERE language=\'English\' ORDER BY id DESC')
 result = cursor.fetchall()
 errors = []
 
