@@ -8,7 +8,6 @@ require 'logger'	#database.log
 require 'funcs'
 require 'models'	#Track,Album etc
 require 'yaml'
-require 'scan_album'
 ##Setup the database
 
 dbconfig = YAML::load(File.open('database.yml'))
@@ -47,7 +46,6 @@ File.open("album_path.txt", "r") do |infile|
 
 		#Get the band name from parent folder
 		band_name = File.basename File.expand_path "..", album_path
-
 		#The album alternative name is the name of the current folder
 		album_folder = File.basename album_path
 
@@ -107,7 +105,7 @@ File.open("album_path.txt", "r") do |infile|
 			title ||= track.info.tag.title if track.info.tag
 			title ||= track.info.tag2.TT2 if track.info.tag2
 			#If all tags fail, use the filename
-			title ||= File.basename(track.path,"."+track.extension)
+			title = File.basename(track.path,"."+track.extension) if title.chomp.length==0
 
 			#Create the track object
 			track = Track.new(
