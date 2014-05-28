@@ -1,5 +1,3 @@
 *.txt
-album_path.txt
-pics
-database.yml
-database.log
+*.log
+config/database.yml
