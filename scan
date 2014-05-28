@@ -1,7 +1,21 @@
 #!/bin/bash
 
-find $1  -mindepth 2 -maxdepth 2  -type d -mtime -2 > album_path.txt
-./scan.rb
-./album_art.rb $2
-cd $2
-rsync -av $2/* $3
+args=$#
+
+if [ $args -eq 4 ] && [ -d "$1" ] && [ -d "$2" ] && [ -d "$3" ]; then
+  find $1  -mindepth 2 -maxdepth 2  -type d -mtime -2 > album_path.txt
+  ./app/index.rb $1 $2 $3
+  cd $2
+  rsync -av $2/* $4
+elif [ $args -eq 3 ] && [ -d "$1" ] && [ -d "$2" ] && [ -d "$3" ]; then
+  find $1  -mindepth 2 -maxdepth 2  -type d -mtime -2 > album_path.txt
+  ./app/index.rb $1 $2 $3
+elif [ $args -eq 2 ] && [ -d "$1" ] && [ -d "$2" ]; then 
+  find $1  -mindepth 2 -maxdepth 2  -type d -mtime -2 > album_path.txt
+  ./app/index.rb $1 $2
+elif [ $args -eq 1 ] && [ -d "$1" ]; then
+  find $1  -mindepth 2 -maxdepth 2  -type d -mtime -2 > album_path.txt
+  ./app/index.rb $1
+else
+  echo "Usage: ./scan /path/to/music /album/art/folder /artist/pic/folder"
+fi
