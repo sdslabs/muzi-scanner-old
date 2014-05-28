@@ -1,6 +1,0 @@
-host:     localhost
-adapter:  mysql
-encoding: utf8
-database: muzi
-username: root
-password: 
