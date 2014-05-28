@@ -1,9 +1,9 @@
-genres = ['Blues','Classic Rock','Country','Dance','Disco','Funk','Grunge','Hip-Hop','Jazz','Metal','New Age','Oldies','Other','Pop','R&B','Rap','Reggae','Rock','Techno','Industrial','Alternative','Ska','Death Metal','Pranks','Soundtrack','Euro-Techno','Ambient','Trip-Hop','Vocal','Jazz+Funk','Fusion','Trance','Classical','Instrumental','Acid','House','Game','Soun','Gospel','Noise','Alternative Rock','Bass','Soul','Punk','Space','Meditative','Instrumental Pop','Instrumental Rock','Ethnic','Gothic','Darkwave','Techno-Industrial','Electronic','Pop-Folk','Euro','Dream','Southern Rock','Comedy','Cult','Gangsta','Top 40','Christian Rap','Pop/Funk','Jungle','Native US','Cabaret','New Wave','Psycha','Rave','Showtunes','Trailer','Lo-Fi','Tribal','Acid Punk','Acid Jazz','Polka','Retro','Musical','Rock & Roll','Hard Rock','Folk','Folk-Rock','National Folk','Swing','Fast Fusion','Bebob','Latin','Revival','Celtic','Bluegrass','Avantgar','Gothic Rock','Progressive Rock','Psyche','Symphonic Rock','Slow Rock','Big Ban','Chorus','Easy Listening','Acoustic','Humour','Speech','Chanson','Opera','Chamber Music','Sonata','Symphony','Booty Bass','Primus','Porn Groove','Satire','Slow Jam','Club','Tango','Samba','Folklore','Balla','Power Balla','Rhythmic Soul','Freestyle','Duet','Punk Rock','Drum Solo','Acapella','Euro-House','Dance Hall','Goa','Drum & Bass','ClubHouse','Hardcore','Terror','Indie','BritPop','Negerpunk','Polsk Punk','Beat','Christian Gangsta Rap','Heavy Metal','Black Metal','Crossover','Contemporary Christian','Christian Rock','Merengue','Salsa','Thrash Metal','Anime','JPop','Synthpop']
+$genres = ['Blues','Classic Rock','Country','Dance','Disco','Funk','Grunge','Hip-Hop','Jazz','Metal','New Age','Oldies','Other','Pop','R&B','Rap','Reggae','Rock','Techno','Industrial','Alternative','Ska','Death Metal','Pranks','Soundtrack','Euro-Techno','Ambient','Trip-Hop','Vocal','Jazz+Funk','Fusion','Trance','Classical','Instrumental','Acid','House','Game','Soun','Gospel','Noise','Alternative Rock','Bass','Soul','Punk','Space','Meditative','Instrumental Pop','Instrumental Rock','Ethnic','Gothic','Darkwave','Techno-Industrial','Electronic','Pop-Folk','Euro','Dream','Southern Rock','Comedy','Cult','Gangsta','Top 40','Christian Rap','Pop/Funk','Jungle','Native US','Cabaret','New Wave','Psycha','Rave','Showtunes','Trailer','Lo-Fi','Tribal','Acid Punk','Acid Jazz','Polka','Retro','Musical','Rock & Roll','Hard Rock','Folk','Folk-Rock','National Folk','Swing','Fast Fusion','Bebob','Latin','Revival','Celtic','Bluegrass','Avantgar','Gothic Rock','Progressive Rock','Psyche','Symphonic Rock','Slow Rock','Big Ban','Chorus','Easy Listening','Acoustic','Humour','Speech','Chanson','Opera','Chamber Music','Sonata','Symphony','Booty Bass','Primus','Porn Groove','Satire','Slow Jam','Club','Tango','Samba','Folklore','Balla','Power Balla','Rhythmic Soul','Freestyle','Duet','Punk Rock','Drum Solo','Acapella','Euro-House','Dance Hall','Goa','Drum & Bass','ClubHouse','Hardcore','Terror','Indie','BritPop','Negerpunk','Polsk Punk','Beat','Christian Gangsta Rap','Heavy Metal','Black Metal','Crossover','Contemporary Christian','Christian Rock','Merengue','Salsa','Thrash Metal','Anime','JPop','Synthpop']
 
 def getGenre(string)
   return "Unknown Genre" if string.nil?
   if string =~ /\((\d+)\)/
-    genres[$1.to_i]
+    $genres[$1.to_i]
   else
     return string
   end
@@ -12,7 +12,7 @@ end
 def downloadAlbumArt (album)
   return if $albumArtFolder.nil?
   return if File.exist?("#{$albumArtFolder}/#{album.id}.jpg")
-  band = Band.find(Track.find_by_album(album.id).band)
+  band = Band.find_by(id: Track.find_by(album: album.id).band)
   filename = "#{$albumArtFolder}/#{album.id}.jpg"
   begin
     response = HTTParty.get("http://www.musicbrainz.org/ws/2/release/?limit=1&fmt=json&query=release:#{URI.encode(album.name)}+artist:#{URI.encode(band.name)}")
@@ -22,13 +22,14 @@ def downloadAlbumArt (album)
       if image.types[0] == "Front"
         url = image.image
         `wget -nv "#{url}" -O #{filename}`
+        downloadArtistPic(band)
         return
       end
     end
   rescue
+    downloadArtistPic(band)
     return
   end
-  downloadArtistPic(band)
 end
 
 def saveAlbum (album_path)
@@ -46,13 +47,14 @@ def saveAlbum (album_path)
   album_folder = File.basename(album_path)
 
   album.files.each do |track|
-    addTrackToDatabase(track, album)
+    addTrackToDatabase(track, album, band_name, album_folder)
   end
 
+  album = Album.find_by(name: album_folder)
   downloadAlbumArt(album)
 end
 
-def addTrackToDatabase (track, album, language = "English")
+def addTrackToDatabase (track, album, band, folder, language = "English")
   return unless ["mp3","m4a","mp4"].include? track.extension.downcase
 
   # Calculate the path which is stored in database
@@ -65,7 +67,7 @@ def addTrackToDatabase (track, album, language = "English")
 
   # Default album title is the name of the folder (unless one is
   # given by the album itself)
-  album_title = album.title.empty? ? album_folder : album.title
+  album_title = album.title.empty? ? folder : album.title
 
   # Year
   year = nil
@@ -104,12 +106,12 @@ def addTrackToDatabase (track, album, language = "English")
   track = Track.new(
     :file   => filename_in_database,
     :title  => title,
-    :album  => Album.find_or_create_by_name_and_language(album_title, language),
-    :genre  => Genre.find_or_create_by_name(genre),
-    :year   => Year.find_or_create_by_name(year),
+    :album  => Album.find_or_create_by(name: album_title, language: language),
+    :genre  => Genre.find_or_create_by(name: genre),
+    :year   => Year.find_or_create_by(name: year),
     :artist => artist,
     :track  => track_number,
-    :band   => Band.find_or_create_by_name_and_language(band_name, language),
+    :band   => Band.find_or_create_by(name: band, language: language),
     :plays  => 0,
     :length => track.length
   )
@@ -119,23 +121,21 @@ end
 def downloadArtistPic (artist)
   return if $artistPicFolder.nil?
   return if File.exist?("#{$artistPicFolder}/#{artist.id}.png")
-  filename = "#{$artistPicFolder}/#{album.id}.jpg"
   zune_root = 'http://catalog.zune.net/v3.2/en-US/music/artist'
+  filename = "#{$artistPicFolder}/#{artist.id}.png"
   begin
     response = HTTParty.get("#{zune_root}?q=#{URI.encode(artist.name)}")
     xmldoc = Document.new(response.body)
-    xmldoc.elements.each('a:feed/a:entry/a:title') do |element|
+    xmldoc.elements.each('a:feed/a:entry/a:id') do |element|
       id = element.text.to_s
-      response = HTTParty.get("#{zune_root}/#{id}/images")
+      response = HTTParty.get("#{zune_root}/#{URI.encode(id[9..-1])}/images")
       xml = Document.new(response.body)
       xml.elements.each('a:feed/a:entry/instances/imageInstance/url') do |elem|
         url = elem.text
         `wget -nv "#{url}" -O #{filename}`
-        break
+        return
       end
-      break
+      return
     end
-  rescue
-    return
   end
 end

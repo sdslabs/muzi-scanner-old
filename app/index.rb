@@ -1,3 +1,5 @@
+#!/usr/bin/env ruby
+
 require 'rubygems'
 require 'audioinfo'
 require 'audioinfo/album'
@@ -10,8 +12,8 @@ require 'yaml'
 require 'json'
 require 'uri'
 
-require './utils'
-require './models'
+require './app/utils.rb'
+require './app/models.rb'
 include REXML
 
 config = YAML::load(File.open('config/config.yml'))
