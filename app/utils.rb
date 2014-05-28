@@ -8,3 +8,21 @@ def getGenre(string)
     return string
   end
 end
+
+def downloadAlbumArt (album, pics)
+  return if File.exist?("#{pics}/#{album.id}.jpg")
+  bandName = Band.find(Track.find_by_album(album.id).band).name
+  begin
+    album_info = $lastfm.album.get_info(bandName, album.name)
+  # rescue
+    # return
+  end
+  return unless album_info['image'].length > 0
+  album_info['image'].each do |img|
+    if img['size'] == 'large' and img['content']
+      filename = "#{pics}/#{album.id}.jpg"
+      `wget -nv "#{img["content"]}" -O #{filename}`
+    end
+  end
+end
+
