@@ -1,17 +1,21 @@
 #!/usr/bin/env ruby
-require 'rubygems'	#Gem Support
-require "vendor/ruby-audioinfo/lib/audioinfo.rb"	#reading id3 tags
-require "vendor/ruby-audioinfo/lib/audioinfo/album.rb"	#reading id3 tags
-require 'pathname'
-require 'active_record'#ORM
-require 'logger'	#database.log
-require 'funcs'
-require 'models'	#Track,Album etc
-require 'yaml'
-##Setup the database
 
-dbconfig = YAML::load(File.open('database.yml'))
+require 'rubygems'
+require 'audioinfo'
+require 'audioinfo/album.rb'
+require 'pathname'
+require 'active_record'
+require 'logger'
+require 'lastfm'
+require 'yaml'
+require 'json'
+
+require './app/genres'
+require './app/models'
+
+dbconfig = YAML::load(File.open('config/database.yml'))
 ActiveRecord::Base.establish_connection(dbconfig)
+
 ActiveRecord::Base.logger = Logger.new(File.open('database.log', 'a'))
 ActiveSupport::LogSubscriber.colorize_logging=false
 ActiveRecord::Base.logger.formatter = proc { |severity, datetime, progname, msg|
@@ -19,7 +23,7 @@ ActiveRecord::Base.logger.formatter = proc { |severity, datetime, progname, msg|
 }
 
 File.open("album_path.txt", "r") do |infile|
-    while (album_path = infile.gets)
+  while (album_path = infile.gets)
 		ActiveRecord::Base.establish_connection(dbconfig)
 		album_path = album_path.strip! || album_path
 		album = AudioInfo::Album.new(album_path)
@@ -29,7 +33,6 @@ File.open("album_path.txt", "r") do |infile|
 			puts "Album empty"
 			next
 		else
-			#puts "THIS IS AWESOME"
 			puts album_path
 		end
 
