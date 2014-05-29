@@ -33,41 +33,40 @@ def downloadAlbumArt (album)
 end
 
 def saveAlbum (album_path)
-  album_path = album_path.strip! || album_path
-  album = AudioInfo::Album.new(album_path)
-  if album.empty?
-    puts 'Album empty'
-    return
-  else
+  begin
+    album_path = album_path.strip! || album_path
+
+    Dir.chdir(album_path)
+    band_name = File.basename(File.expand_path("..", album_path))
+    album_name = File.basename(album_path)
+
+    songs = Dir.entries album_path
+
     puts album_path
+    songs.each do |song|
+      ext = song[-3..-1]
+      next if ext.nil?
+      next unless ["mp3","m4a","mp4"].include? ext.downcase
+      track = AudioInfo.new("#{album_path}/#{song}")
+      addTrackToDatabase(track, album_name, band_name)
+    end
+
+    album = Album.find_by(name: album_name)
+    downloadAlbumArt(album)
+  rescue
+    return
   end
-
-  Dir.chdir(album_path)
-  band_name = File.basename(File.expand_path("..", album_path))
-  album_folder = File.basename(album_path)
-
-  album.files.each do |track|
-    addTrackToDatabase(track, album, band_name, album_folder)
-  end
-
-  album = Album.find_by(name: album_folder)
-  downloadAlbumArt(album)
 end
 
-def addTrackToDatabase (track, album, band, folder, language = "English")
-  return unless ["mp3","m4a","mp4"].include? track.extension.downcase
+def addTrackToDatabase (track, album, band, language = "English")
 
   # Calculate the path which is stored in database
   filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new($musicFolder)).to_s
 
   # If track is already in database, skip to next
-  if Track.find_by_file filename_in_database
+  if Track.find_by(file: filename_in_database)
     return
   end
-
-  # Default album title is the name of the folder (unless one is
-  # given by the album itself)
-  album_title = folder
 
   # Year
   year = nil
@@ -106,7 +105,7 @@ def addTrackToDatabase (track, album, band, folder, language = "English")
   track = Track.new(
     :file   => filename_in_database,
     :title  => title,
-    :album  => Album.find_or_create_by(name: album_title, language: language),
+    :album  => Album.find_or_create_by(name: album, language: language),
     :genre  => Genre.find_or_create_by(name: genre),
     :year   => Year.find_or_create_by(name: year),
     :artist => artist,
