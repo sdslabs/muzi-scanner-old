@@ -67,7 +67,7 @@ def addTrackToDatabase (track, album, band, folder, language = "English")
 
   # Default album title is the name of the folder (unless one is
   # given by the album itself)
-  album_title = album.title.empty? ? folder : album.title
+  album_title = folder
 
   # Year
   year = nil
