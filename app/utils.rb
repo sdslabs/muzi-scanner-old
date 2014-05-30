@@ -44,11 +44,15 @@ def saveAlbum (album_path)
 
     puts album_path
     songs.each do |song|
-      ext = song[-3..-1]
-      next if ext.nil?
-      next unless ["mp3","m4a","mp4"].include? ext.downcase
-      track = AudioInfo.new("#{album_path}/#{song}")
-      addTrackToDatabase(track, album_name, band_name)
+      begin
+        ext = song[-3..-1]
+        next if ext.nil?
+        next unless ["mp3","m4a","mp4"].include? ext.downcase
+        track = AudioInfo.new("#{album_path}/#{song}")
+        addTrackToDatabase(track, album_name, band_name)
+      rescue
+        next
+      end
     end
 
     album = Album.find_by(name: album_name)
