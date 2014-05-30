@@ -42,7 +42,6 @@ def saveAlbum (album_path)
 
     songs = Dir.entries album_path
 
-    puts album_path
     songs.each do |song|
       begin
         ext = song[-3..-1]
@@ -51,6 +50,7 @@ def saveAlbum (album_path)
         track = AudioInfo.new("#{album_path}/#{song}")
         addTrackToDatabase(track, album_name, band_name)
       rescue
+        puts "TRACK ERROR: #{album_name} : #{song}"
         next
       end
     end
@@ -58,6 +58,7 @@ def saveAlbum (album_path)
     album = Album.find_by(name: album_name)
     downloadAlbumArt(album)
   rescue
+    puts "ALBUM ERROR: #{album_name}"
     return
   end
 end
