@@ -127,9 +127,9 @@ end
 
 def downloadArtistPic (artist)
   return if $artistPicFolder.nil?
-  return if File.exist?("#{$artistPicFolder}/#{artist.id}.png")
+  return if File.exist?("#{$artistPicFolder}/#{artist.id}.jpg")
   zune_root = 'http://catalog.zune.net/v3.2/en-US/music/artist'
-  filename = "#{$artistPicFolder}/#{artist.id}.png"
+  filename = "#{$artistPicFolder}/#{artist.id}.jpg"
   begin
     response = HTTParty.get("#{zune_root}?q=#{URI.encode(artist.name)}")
     xmldoc = Document.new(response.body)
