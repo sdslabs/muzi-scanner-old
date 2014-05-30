@@ -15,16 +15,19 @@ def downloadAlbumArt (album)
   band = Band.find_by(id: Track.find_by(album: album.id).band)
   filename = "#{$albumArtFolder}/#{album.id}.jpg"
   begin
-    response = HTTParty.get("http://www.musicbrainz.org/ws/2/release/?limit=1&fmt=json&query=release:#{URI.encode(album.name)}+artist:#{URI.encode(band.name)}")
-    mbid = JSON.parse(response.body).releases[0].id.to_s
-    response = HTTParty.get("http://www.coverartarchive.org/release/#{URI.encode(mbid)}")
-    JSON.parse(response.body).images.each do |image|
-      if image.types[0] == "Front"
-        url = image.image
-        `wget -nv "#{url}" -O #{filename}`
-        downloadArtistPic(band)
-        return
+    response = HTTParty.get("http://ws.audioscrobbler.com/2.0/?format=json&method=album.getinfo&api_key=#{$config.lastfm.api_key}&artist=#{URI.encode(band.name)}&album=#{URI.encode(album.name)}")
+    result = JSON.parse(response.body)
+    if result.has_key? "album"
+      result.album.image.each do |image|
+        if image["size"] == "large"
+          url = image['#text']
+          `wget -nv "#{url}" -O #{filename}`
+          downloadArtistPic(band)
+          return
+        end
       end
+    else
+      downloadArtistPic(band)
     end
   rescue
     downloadArtistPic(band)
