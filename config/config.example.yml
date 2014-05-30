@@ -4,4 +4,8 @@ db:
   encoding: utf8
   database: muzi
   username: root
-  password: 
+  password:
+
+lastfm:
+  api_key: 1046bf7d632bb797c7d3430962cc2549
+  api_secret: a973b39e259ec530d08d0daad7ac718d
