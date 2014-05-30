@@ -16,7 +16,7 @@ require './app/utils.rb'
 require './app/models.rb'
 include REXML
 
-config = YAML::load(File.open('config/config.yml'))
+$config = YAML::load(File.open('config/config.yml'))
 
 $musicFolder = $artistPicFolder = $albumArtFolder = nil
 
@@ -34,7 +34,7 @@ else
   exit
 end
 
-ActiveRecord::Base.establish_connection(config.db)
+ActiveRecord::Base.establish_connection($config.db)
 ActiveRecord::Base.logger = Logger.new(File.open('database.log', 'a'))
 ActiveRecord::Base.logger.formatter = proc { |severity, datetime, progname, msg| "#{msg}\n" }
 
