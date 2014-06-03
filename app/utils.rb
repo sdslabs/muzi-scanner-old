@@ -88,7 +88,15 @@ def addTrackToDatabase (track, album, band, language = "English")
   year = "2000" if year.nil?
 
   # Artist
-  artist = track.artist || track.info.tag.artist || track.info.tag2.TP1 || "Unknown Artist"
+  artist = nil
+  if track.artist
+    artist = track.artist
+  elsif track.info.tag
+    artist = track.info.tag.artist
+  elsif track.info.tag2
+    artist = track.info.tag2.TP1
+  end
+  artist = band if artist.nil?;
 
   # Genre
   if track.info.tag && track.info.tag.genre_s
@@ -108,7 +116,9 @@ def addTrackToDatabase (track, album, band, language = "English")
   title ||= track.info.tag2.TT2 if track.info.tag2
 
   # If all tags fail, use the filename
-  title = File.basename(track.path, "." + track.extension) if title.chomp.length == 0
+  if title.nil? or title.chomp.length == 0
+    title = File.basename(track.path, "." + track.extension)[0..-5]
+  end
 
   track = Track.new(
     :file   => filename_in_database,
