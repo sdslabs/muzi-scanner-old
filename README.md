@@ -12,3 +12,4 @@ This repository contains the scanner script for Muzi. It scans english songs and
 * Create two new folders where the album and artist pics will be downloaded. Examples: `~/pictures/muzipics/albums` and `~/pictures/muzipics/artists`.
 * Make sure your song collection is properly organized in folders such that the root folder contains folders named as artists each of which contains folders for different albums. A quick hack would be to create a folder structure like `Unknown Artist/Unknown Album` in your music root directory and place all your songs in it.
 * Run `./scan.sh /path/to/songs /path/to/album/pics /path/to/artist/pics`.
+* Now make sure you change the musicRoot, picsRoot , bandRoot accordingly as you created the folders in above steps
