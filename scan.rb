@@ -66,7 +66,10 @@ File.open("album_path.txt", "r") do |infile|
 			filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new(music_root)).to_s
 
 			#If track is already in database, skip to next
-			if Track.find_by_file filename_in_database
+			track_from_file = Track.find_by_file filename_in_database
+			if track_from_file
+				track_from_file.creation_time = getCreationTime(track.path);
+				track_from_file.save!
 				next
 			end
 
@@ -107,6 +110,9 @@ File.open("album_path.txt", "r") do |infile|
 			#If all tags fail, use the filename
 			title = File.basename(track.path,"."+track.extension) if title.chomp.length==0
 
+			#Get the creation date
+			creation_time = getCreationTime(track.path)
+
 			#Create the track object
 			track = Track.new(
 				# Each || offers an alternative, some ternary for cases where it may not exist
@@ -119,7 +125,8 @@ File.open("album_path.txt", "r") do |infile|
 				:track	=> track_number,
 				:band	=> Band.find_or_create_by_name_and_language(band_name,language), #Also called the Album Artist/Band
 				:plays	=> 0,
-				:length	=> track.length
+				:length	=> track.length,
+				:creation_time => creation_time
 			)
 			puts track.title
 			track.save

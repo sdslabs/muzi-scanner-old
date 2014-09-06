@@ -25,3 +25,7 @@ end
 def stripUrl(string)
     
 end
+
+def getCreationTime(string)
+	return File.ctime(string).to_i
+end
