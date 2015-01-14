@@ -1,4 +1,3 @@
 *.txt
 *.log
 config/config.yml
-Gemfile.lock

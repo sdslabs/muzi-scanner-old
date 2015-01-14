@@ -130,7 +130,8 @@ def addTrackToDatabase (track, album, band, language = "English")
     :track  => track_number,
     :band   => Band.find_or_create_by(name: band, language: language),
     :plays  => 0,
-    :length => track.length
+    :length => track.length,
+    :creation_time => Time.now.to_i
   )
   track.save
 end
