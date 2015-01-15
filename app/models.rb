@@ -1,8 +1,8 @@
 class Track < ActiveRecord::Base
-	belongs_to :album, :foreign_key => 'album'
-	belongs_to :genre, :foreign_key => 'genre'
-	belongs_to :band, :foreign_key => 'band'
-	belongs_to :year, :foreign_key => 'year'
+	belongs_to :album, :foreign_key => 'album_id'
+	belongs_to :genre, :foreign_key => 'genre_id'
+	belongs_to :band, :foreign_key => 'band_id'
+	belongs_to :year, :foreign_key => 'year_id'
 	has_many :pic
 end
 

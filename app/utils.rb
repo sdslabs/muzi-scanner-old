@@ -69,7 +69,7 @@ end
 def addTrackToDatabase (track, album, band, language = "English")
 
   # Calculate the path which is stored in database
-  filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new($musicFolder)).to_s
+  filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new("../#{$musicFolder}")).to_s
 
   # If track is already in database, skip to next
   if Track.find_by(file: filename_in_database)
