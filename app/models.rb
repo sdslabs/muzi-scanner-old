@@ -7,6 +7,7 @@ class Track < ActiveRecord::Base
 end
 
 class Album < ActiveRecord::Base
+	belongs_to :band, :foreign_key => 'band_id'
 	has_many :track
 end
 
