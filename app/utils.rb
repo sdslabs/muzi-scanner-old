@@ -47,13 +47,12 @@ def saveAlbum (album_path)
 
     songs.each do |song|
       begin
-        ext = song[-3..-1]
+        ext = song[-3..-1] 
         next if ext.nil?
-        next unless ["mp3","m4a","mp4"].include? ext.downcase
+        next unless ["mp3","mp4"].include? ext.downcase
         track = AudioInfo.new("#{album_path}/#{song}")
         addTrackToDatabase(track, album_name, band_name)
-      rescue => e
-        puts e.backtrace
+      rescue => e 
         puts e.to_s
         puts "TRACK ERROR: #{album_name} : #{song}"
         next
@@ -62,7 +61,8 @@ def saveAlbum (album_path)
 
     album = Album.find_by(name: album_name)
     downloadAlbumArt(album)
-  rescue
+  rescue => e
+    puts e.to_s
     puts "ALBUM ERROR: #{album_name}"
     return
   end
@@ -71,10 +71,9 @@ end
 def addTrackToDatabase (track, album, band, language = "English")
 
   # Calculate the path which is stored in database
-  filename_in_database = "English/" + Pathname.new(track.path).relative_path_from(Pathname.new($musicFolder)).to_s
+  filename_in_database = Pathname.new(track.path).relative_path_from(Pathname.new($musicFolder)).to_s
 
   # If track is already in database, skip to next
-  puts Track.find_by(file: filename_in_database)
   if Track.find_by(file: filename_in_database)
     return
   end
@@ -122,9 +121,7 @@ def addTrackToDatabase (track, album, band, language = "English")
   if title.nil? or title.chomp.length == 0
     title = File.basename(track.path, "." + track.extension)[0..-5]
   end
-
   band_object = Band.find_or_create_by(name: band, language: language)
-
   track = Track.new(
     :file   => filename_in_database,
     :title  => title,
