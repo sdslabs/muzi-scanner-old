@@ -112,12 +112,12 @@ File.open("album_path.txt", "r") do |infile|
 				# Each || offers an alternative, some ternary for cases where it may not exist
 				:file	=> filename_in_database,
 				:title	=> title,
-				:album_id	=> Album.find_or_create_by_name_and_language(album_title,language),
-				:genre_id	=> Genre.find_or_create_by_name(genre),
-				:year_id	=> Year.find_or_create_by_name(year),
+				:album_id	=> Album.find_or_create_by_name_and_language(album_title,language).id,
+				:genre_id	=> Genre.find_or_create_by_name(genre).id,
+				:year_id	=> Year.find_or_create_by_name(year).id,
 				:artist	=> artist,
 				:track	=> track_number,
-				:band_id	=> Band.find_or_create_by_name_and_language(band_name,language), #Also called the Album Artist/Band
+				:band_id	=> Band.find_or_create_by_name_and_language(band_name,language).id, #Also called the Album Artist/Band
 				:plays	=> 0,
 				:length	=> track.length
 			)
