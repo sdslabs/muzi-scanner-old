@@ -12,7 +12,7 @@ end
 def downloadAlbumArt (album)
   return if $albumArtFolder.nil?
   return if File.exist?("#{$albumArtFolder}/#{album.id}.jpg")
-  band = Band.find_by(id: Track.find_by(album: album.id).band)
+  band = Band.find_by(id: Track.find_by(album_id: album.id).band)
   filename = "#{$albumArtFolder}/#{album.id}.jpg"
   begin
     response = HTTParty.get("http://ws.audioscrobbler.com/2.0/?format=json&method=album.getinfo&api_key=#{$config.lastfm.api_key}&artist=#{URI.encode(band.name)}&album=#{URI.encode(album.name)}")
