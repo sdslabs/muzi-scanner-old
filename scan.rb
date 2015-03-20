@@ -107,17 +107,18 @@ File.open("album_path.txt", "r") do |infile|
 			#If all tags fail, use the filename
 			title = File.basename(track.path,"."+track.extension) if title.chomp.length==0
 
+			band_id = Band.find_or_create_by_name_and_language(band_name,language).id
 			#Create the track object
 			track = Track.new(
 				# Each || offers an alternative, some ternary for cases where it may not exist
 				:file	=> filename_in_database,
 				:title	=> title,
-				:album_id	=> Album.find_or_create_by_name_and_language(album_title,language).id,
+				:album_id	=> Album.find_or_create_by_name_and_language_and_band_id_and_band_name(album_title,language, band_id, band_name).id,
 				:genre_id	=> Genre.find_or_create_by_name(genre).id,
 				:year_id	=> Year.find_or_create_by_name(year).id,
 				:artist	=> artist,
 				:track	=> track_number,
-				:band_id	=> Band.find_or_create_by_name_and_language(band_name,language).id, #Also called the Album Artist/Band
+				:band_id	=> band_id, #Also called the Album Artist/Band
 				:plays	=> 0,
 				:length	=> track.length
 			)
