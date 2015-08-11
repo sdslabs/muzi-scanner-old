@@ -120,7 +120,8 @@ File.open("album_path.txt", "r") do |infile|
 				:track	=> track_number,
 				:band_id	=> band_id, #Also called the Album Artist/Band
 				:plays	=> 0,
-				:length	=> track.length
+				:length	=> track.length,
+				:creation_time => Time.now.to_i
 			)
 			puts track.title
 			track.save
