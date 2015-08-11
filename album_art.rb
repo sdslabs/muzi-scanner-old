@@ -28,7 +28,7 @@ lastfm = Lastfm.new("1046bf7d632bb797c7d3430962cc2549", "a973b39e259ec530d08d0da
 Album.all(:conditions => { :language => 'English' }, :order=>"id DESC").each do |album|
 	puts album.name
 	next if File.exist?("#{pics_folder}/#{album.id}.jpg")
-	bandName = Band.find(Track.find_by_album(album.id).band).name
+	bandName = Band.find(Track.find_by(:album_id, album.id).band).name
 	begin
 		album_info = lastfm.album.get_info(bandName,album.name)
 	rescue
