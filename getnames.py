@@ -9,6 +9,8 @@ import eyed3
 import credentials
 
 artists_directory = sys.argv[1]
+# Convert the path to absolute path
+artists_directory = os.path.abspath(artists_directory)
 
 # API Credentials
 
