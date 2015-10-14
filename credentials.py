@@ -43,5 +43,8 @@ def get_lastfm_api_key(data):
 def get_lastfm_api_secret(data):
     return data["lastfm_api_secret"]
 
+@getdata
+def get_db_name(data):
+    return data["db_name"]
 
 
