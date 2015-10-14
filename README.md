@@ -1,0 +1,1 @@
+A program to read a directory containing music data and create a database with details of the songs.
