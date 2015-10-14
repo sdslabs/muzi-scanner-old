@@ -3,6 +3,7 @@ __author__ = 'admin'
 import os
 import sys
 import sqlite3
+import pylast
 import glob
 import eyed3
 import credentials
@@ -28,10 +29,29 @@ for artistName in os.listdir(artists_directory):
         # reference: http://www.diveintopython.net/file_handling/os_module.html
         songs_path = glob.glob(glob_parameter)
         for audio_file_path in songs_path:
+            # Get the title,artist from id3 tags
             audio_file = eyed3.load(audio_file_path)
-            song_name = audio_file.tag.title
+            song_title = audio_file.tag.title
             artist_name = audio_file.tag.artist
-            track_object = network.get_track(artist_name, song_name)
+            try:
+                # Make an API call get the track object for artist_name, song_title
+                track_object = network.get_track(artist_name, song_title)
+                # Get the required attributes(Title, Album, Artist, Duration, Genre)
+                song_title = track_object.get_title()
+                # If the album is not found, an exception is raised, and attributes are
+                # obtained from id3 tags
+                album_name = track_object.get_album()
+                artist_name = track_object.get_artist()
+                # Convert to seconds from milliseconds
+                track_duration = track_object.get_duration()/1000.0
+                genre = track_object.get_top_tags()[0][0]
+            except Exception as e:
+                # Most probably the track could not be found, hence use id3 tags
+                print str(e)
+                # Album , duration, Genre
+                album_name = albumName
+                track_duration = audio_file.info.time_secs
+                genre = audio_file.tag.genre.name
             exit()
 
 
