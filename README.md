@@ -28,7 +28,7 @@ Create a data.json file in the project root. It should look something like below
     }
 }
 ```
-Since the present database is sqlite, no need to install database backend. Just run the below command to create a database.
+Since the present database is sqlite, no need to install database backend. Just run the below command to create a database with table SONGS
 
 ```sh
 $ python createdb.py
