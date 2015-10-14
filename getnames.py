@@ -14,14 +14,20 @@ artists_directory = sys.argv[1]
 
 API_KEY = credentials.get_lastfm_api_key()
 API_SECRET = credentials.get_lastfm_api_secret()
+DB_NAME = credentials.get_db_name()
 
 network = pylast.LastFMNetwork(api_key=API_KEY,
                                api_secret=API_SECRET,
                                )
+conn = sqlite3.connect(DB_NAME)
+c = conn.cursor()
 
 for artistName in os.listdir(artists_directory):
     artist_directory = os.path.join(artists_directory, artistName)
     for albumName in os.listdir(artist_directory):
+        # album_data is a list which will hold the attributes of
+        # all songs of the album, to write to db one album at a time
+        album_data = []
         album_directory = os.path.join(artist_directory, albumName)
         # Assuming that all songs are of mp3 format
         glob_parameter = os.path.join(album_directory,'*.mp3')
@@ -40,11 +46,11 @@ for artistName in os.listdir(artists_directory):
                 song_title = track_object.get_title()
                 # If the album is not found, an exception is raised, and attributes are
                 # obtained from id3 tags
-                album_name = track_object.get_album()
-                artist_name = track_object.get_artist()
+                album_name = track_object.get_album().get_name()
+                artist_name = track_object.get_artist().get_name()
                 # Convert to seconds from milliseconds
                 track_duration = track_object.get_duration()/1000.0
-                genre = track_object.get_top_tags()[0][0]
+                genre = track_object.get_top_tags()[0][0].get_name()
             except Exception as e:
                 # Most probably the track could not be found, hence use id3 tags
                 print str(e)
@@ -52,6 +58,16 @@ for artistName in os.listdir(artists_directory):
                 album_name = albumName
                 track_duration = audio_file.info.time_secs
                 genre = audio_file.tag.genre.name
-            exit()
+            album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration))
+        # Now that the album_data has attributes of all songs in album_name, INSERT into the table
+        # reference: https://docs.python.org/2/library/sqlite3.html
+        # (?,?,?,?,?,?) to mitigate SQL Injection
+        c.executemany('INSERT INTO SONGS VALUES (?,?,?,?,?,?)', album_data)
+        # commit the INSERT
+        conn.commit()
+# Close the connection as the db is now populated
+conn.close()
+
+
 
 
