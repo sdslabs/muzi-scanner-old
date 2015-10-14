@@ -1,6 +1,7 @@
 import sqlite3
 
-
+# Just running this file will create a 'test.db' in the current directory
+# usage: python createdb.py
 def createdb(db_name='test.db'):
     db_name = 'test.db'
     # This will automatically create a db if it does not exist
@@ -11,7 +12,7 @@ def createdb(db_name='test.db'):
              FILEPATH    TEXT     NOT NULL,
              ALBUM       TEXT     NOT NULL,
              ARTIST      TEXT     NOT NULL,
-             GENRE       CHAR(20) NOT NULL,
+             GENRE       CHAR(30) NOT NULL,
              LENGTH      INT      NOT NULL);''')
 
     print "Created db %s with TABLE SONGS" % db_name
