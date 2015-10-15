@@ -13,7 +13,9 @@ So, a song "Problem" by Ariana Grande will be in the folder as "Arian Grande > M
 ### Libraries used:
 Specified in [requirements.txt]
 
-
+```sh
+$ pip install -r requirements.txt
+```
 
 ### USAGE
 Create a data.json file in the project root. It should look something like below:
