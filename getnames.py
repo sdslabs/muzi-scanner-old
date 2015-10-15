@@ -45,21 +45,40 @@ for artistName in os.listdir(artists_directory):
                 # Make an API call get the track object for artist_name, song_title
                 track_object = network.get_track(artist_name, song_title)
                 # Get the required attributes(Title, Album, Artist, Duration, Genre)
-                song_title = track_object.get_title()
+                song_title = track_object.get_correction()
+                artist_name = track_object.get_artist().get_name()
                 # If the album is not found, an exception is raised, and attributes are
                 # obtained from id3 tags
                 album_name = track_object.get_album().get_name()
-                artist_name = track_object.get_artist().get_name()
                 # Convert to seconds from milliseconds
                 track_duration = track_object.get_duration()/1000.0
-                genre = track_object.get_top_tags()[0][0].get_name()
-            except Exception as e:
-                # Most probably the track could not be found, hence use id3 tags
-                print str(e)
+                # get_top_tags returns a list of TopItems
+                # Each TopItem has item and weight attributes
+                # genre can be obtained by accessing the item.name attribute
+                genre = track_object.get_top_tags(limit=1)[0].item.name
+
+            except pylast.WSError as e:
+                if e=='Track not found':
+                    # that means the track is not found , Example: a hindi song
+                    # hence fetch attributes from id3 tags
+                    album_name = albumName
+                    track_duration = audio_file.info.time_secs
+                    genre = audio_file.tag.genre.name
+            except AttributeError as e:
+                # AttributeError here occurs when track_object was retrieved
+                # BUT the album name could not be retrieved
+                # Hence, fall back to using folder names to get album_name attribute
                 # Album , duration, Genre
                 album_name = albumName
                 track_duration = audio_file.info.time_secs
                 genre = audio_file.tag.genre.name
+            except Exception as e:
+                # some unknown error
+                print str(e)
+                # don't insert anything into DB
+                continue
+
+            print ' [+] %s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre, track_duration)
             album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration))
         # Now that the album_data has attributes of all songs in album_name, we can INSERT into the table
         # reference: https://docs.python.org/2/library/sqlite3.html
