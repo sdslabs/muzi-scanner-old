@@ -61,7 +61,7 @@ for artistName in os.listdir(artists_directory):
                 track_duration = audio_file.info.time_secs
                 genre = audio_file.tag.genre.name
             album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration))
-        # Now that the album_data has attributes of all songs in album_data we can INSERT into the table
+        # Now that the album_data has attributes of all songs in album_name, we can INSERT into the table
         # reference: https://docs.python.org/2/library/sqlite3.html
         # (?,?,?,?,?,?) to mitigate SQL Injection
         # executemany to insert multiple rows at same time
