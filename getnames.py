@@ -1,4 +1,4 @@
-__author__ = 'admin'
+__author__ = 'gautham'
 
 import os
 import sys
@@ -23,7 +23,7 @@ network = pylast.LastFMNetwork(api_key=API_KEY,
                                )
 conn = sqlite3.connect(DB_NAME)
 c = conn.cursor()
-
+#TODO: evaluate listdir for artists_dir lazily
 for artistName in os.listdir(artists_directory):
     artist_directory = os.path.join(artists_directory, artistName)
     for albumName in os.listdir(artist_directory):
