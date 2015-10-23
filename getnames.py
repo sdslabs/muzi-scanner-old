@@ -9,6 +9,7 @@ import eyed3
 import urllib
 import credentials
 
+
 def save_image(url, path):
     """
     :param url:
@@ -16,7 +17,8 @@ def save_image(url, path):
     :return nothing:
     """
     image = urllib.URLopener()
-    image.retrieve(url,path)
+    image.retrieve(url, path)
+    print ' [+image] ' + path
     return
 
 
@@ -102,6 +104,13 @@ for artistName in os.listdir(artists_directory):
         c.executemany('INSERT INTO SONGS VALUES (?,?,?,?,?,?)', album_data)
         # commit(save) the INSERT
         conn.commit()
+        try:
+            artist_object = network.get_artist(artist_name)
+            album_object = network.get_album(artist_name, album_name)
+            save_image(artist_object.get_cover_image(), os.path.join(artist_directory,artist_object.get_mbid())+'.png')
+            save_image(album_object.get_cover_image(), os.path.join(album_directory,album_object.get_mbid())+'.png')
+        except Exception as e:
+            print str(e)
 # Close the connection as the db is now populated
 conn.close()
 
