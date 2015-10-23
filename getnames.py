@@ -93,24 +93,35 @@ for artistName in os.listdir(artists_directory):
                 print 'Exception:'+str(e)
                 # don't insert anything into DB
                 continue
-            # Log it in console just for information
-            print ' [+] %s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre, track_duration)
-
-            album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration))
-        # Now that the album_data has attributes of all songs in album_name, we can INSERT into the table
-        # reference: https://docs.python.org/2/library/sqlite3.html
-        # (?,?,?,?,?,?) to mitigate SQL Injection
-        # executemany to insert multiple rows at same time
-        c.executemany('INSERT INTO SONGS VALUES (?,?,?,?,?,?)', album_data)
-        # commit(save) the INSERT
-        conn.commit()
+        # Fetching the album art, artist's cover images
+        artist_mbid = 'NA'
+        album_mbid = 'NA'
         try:
             artist_object = network.get_artist(artist_name)
             album_object = network.get_album(artist_name, album_name)
-            save_image(artist_object.get_cover_image(), os.path.join(artist_directory,artist_object.get_mbid())+'.png')
-            save_image(album_object.get_cover_image(), os.path.join(album_directory,album_object.get_mbid())+'.png')
+            # mbid == A unique MusicBiz ID exists for an artist as well as an album
+            artist_mbid = artist_object.get_mbid()
+            album_mbid = album_object.get_mbid()
+            # save the cover images named as their respective mbid
+            artist_image_path = os.path.join(artist_directory, artist_mbid)+'.png'
+            album_image_path = os.path.join(album_directory, album_mbid)+'.png'
+            save_image(artist_object.get_cover_image(), artist_image_path)
+            save_image(album_object.get_cover_image(), album_image_path)
         except Exception as e:
             print str(e)
+    # Log it in console just for information
+    print ' [+] %s,%s,%s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre, track_duration,
+                                      artist_mbid, album_mbid)
+
+    album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration, artist_mbid, album_mbid))
+    # Now that the album_data has attributes of all songs in album_name, we can INSERT into the table
+    # reference: https://docs.python.org/2/library/sqlite3.html
+    # (?,?,?,?,?,?) to mitigate SQL Injection
+    # executemany to insert multiple rows at same time
+    c.executemany('INSERT INTO SONGS VALUES (?,?,?,?,?,?,?,?)', album_data)
+    # commit(save) the INSERT
+    conn.commit()
+
 # Close the connection as the db is now populated
 conn.close()
 
