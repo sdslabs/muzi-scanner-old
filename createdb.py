@@ -13,7 +13,9 @@ def createdb(db_name='test.db'):
              ALBUM       TEXT     NOT NULL,
              ARTIST      TEXT     NOT NULL,
              GENRE       CHAR(30) NOT NULL,
-             LENGTH      INT      NOT NULL);''')
+             LENGTH      INT      NOT NULL,
+             ARTIST_MBID CHAR(36) NOT NULL,
+             ALBUM_MBID  CHAR(36) NOT NULL);''')
 
     print "Created db %s with TABLE SONGS" % db_name
 
