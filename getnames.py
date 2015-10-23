@@ -6,7 +6,19 @@ import sqlite3
 import pylast
 import glob
 import eyed3
+import urllib
 import credentials
+
+def save_image(url, path):
+    """
+    :param url:
+    :param path:
+    :return nothing:
+    """
+    image = urllib.URLopener()
+    image.retrieve(url,path)
+    return
+
 
 artists_directory = sys.argv[1]
 # Convert the path to absolute path
