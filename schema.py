@@ -34,6 +34,7 @@ class Album(Base):
     id = Column(Integer, primary_key=True)
     album_title = Column(String)
     language = Column(String)
+    info = Column(String)
     band_id = Column(Integer, ForeignKey('band.id'))
     band_name = Column(String, ForeignKey('band.name'))
 
@@ -46,6 +47,7 @@ class Band(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String)
     language = Column(String)
+    info = Column(String)
 
 
 class Year(Base):
