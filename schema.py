@@ -52,5 +52,12 @@ class Band(Base):
 
 class Year(Base):
     __tablename__ = 'years'
+    id = Column(Integer, primary_key=True)
+    year = Column(Integer)
 
     id = Column(Integer, primary_key=True)
+
+class Genre(Base):
+    __tablename__ = 'genres'
+    id = Column(Integer, primary_key=True)
+    genre = Column(String)
