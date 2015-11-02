@@ -47,4 +47,15 @@ def get_lastfm_api_secret(data):
 def get_db_name(data):
     return data["db_name"]
 
+@getdata
+def get_db_user_name(data):
+    return data["db_user_name"]
+
+@getdata
+def get_db_host(data):
+    return data["db_host"]
+
+@getdata
+def get_db_password(data):
+    return data["db_password"]
 

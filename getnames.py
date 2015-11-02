@@ -9,6 +9,7 @@ import eyed3
 import urllib
 import credentials
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.expression import ClauseElement
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy import create_engine
 from schema import Track, Album, Band, Year
@@ -35,7 +36,7 @@ def get_or_create(session, model, defaults=None, **kwargs):
         params.update(defaults or {})
         instance = model(**params)
         session.add(instance)
-        return instance, True
+        return instance
 
 # configure Session class with desired options
 Session = sessionmaker()
@@ -86,7 +87,7 @@ for artistName in os.listdir(artists_directory):
         album_data = []
         album_directory = os.path.join(artist_directory, albumName)
         # Assuming that all songs are of mp3 or m4a or mp4 format
-        glob_parameters = [os.path.join(album_directory,ext) for ext in ['*.mp3', '*.m4a', '*.mp4']]
+        glob_parameters = [os.path.join(album_directory,ext) for ext in ['*.mp3']]
         # songs_path will contain the absolute path to every mp3 file in album_directory
         # reference: http://www.diveintopython.net/file_handling/os_module.html
         songs_path = []
@@ -96,6 +97,7 @@ for artistName in os.listdir(artists_directory):
         for audio_file_path in songs_path:
             # Get the title,artist from id3 tags
             audio_file = eyed3.load(audio_file_path)
+            print '>> %s'%audio_file_path
             song_title = audio_file.tag.title
             artist_name = audio_file.tag.artist
             # set some default values
@@ -154,7 +156,8 @@ for artistName in os.listdir(artists_directory):
                          language = 'English',
                          info = artist_info
                          )
-
+    session.add(band)
+    session.commit()
     album = get_or_create(session, Album,
                           album_title = album_name,
                           language = 'English',
@@ -162,23 +165,25 @@ for artistName in os.listdir(artists_directory):
                           band_id = band.id,
                           band_info = band.info
                           )
+    session.add(album)
+    session.commit()
     year = get_or_create(session, Year,
                          year = year
                          )
+    session.add(year)
+    session.commit()
     genre = get_or_create(session, Genre,
                           )
+    session.add(genre)
+    session.commit()
     track = get_or_create(session, Track,
                           file = audio_file_path,
                           title = song_title,
                           album_id = album.id,
                           )
-    # more readable but more code
-    session.add(band)
-    session.add(album)
-    session.add(year)
-    session.add(genre)
     session.add(track)
     session.commit()
+
     # Fetching the album art, artist's cover images
     artist_id = 'NULL'
 
