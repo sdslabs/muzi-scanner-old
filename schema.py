@@ -12,11 +12,13 @@ class Band(Base):
     __tablename__ = 'bands'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(100), primary_key=True)
-    language = Column(String(50))
-    info = Column(String(1000))
+    name = Column(String(255), primary_key=True)
+    language = Column(String(255))
+    info = Column(String(100000))
 
-    #__table_args__ = (UniqueConstraint('name'),)
+    __table_args__ = (
+                      UniqueConstraint('name'),
+                     )
 
 
 class Year(Base):
@@ -28,18 +30,18 @@ class Year(Base):
 class Genre(Base):
     __tablename__ = 'genres'
     id = Column(Integer, primary_key=True)
-    genre = Column(String(50))
+    genre = Column(String(255))
 
 
 class Album(Base):
     __tablename__ = 'albums'
 
     id = Column(Integer, primary_key=True)
-    album_title = Column(String(100))
-    language = Column(String(50))
-    info = Column(String(1000))
+    album_title = Column(String(255))
+    language = Column(String(255))
+    info = Column(String(100000))
     band_id = Column(Integer)#, ForeignKey('bands.id'))
-    band_name = Column(String(100))#, ForeignKey('bands.name'))
+    band_name = Column(String(255))#, ForeignKey('bands.name'))
 
     band = relationship('Band', backref=backref('bands'))
 
@@ -53,8 +55,8 @@ class Track(Base):
     __tablename__ = 'tracks'
 
     id = Column(Integer, primary_key=True)
-    file = Column(String(100))
-    title = Column(String(100))
+    file = Column(String(1024))
+    title = Column(String(255))
     album_id = Column(Integer, ForeignKey('albums.id'))
     genre_id = Column(Integer, ForeignKey('genres.id'))
     artist = Column(String(100))
