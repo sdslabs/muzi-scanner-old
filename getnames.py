@@ -9,10 +9,11 @@ import eyed3
 import urllib
 import credentials
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import ClauseElement
 from sqlalchemy_utils import database_exists, create_database
 from sqlalchemy import create_engine
-from schema import Track, Album, Band, Year
+from schema import Track, Album, Band, Year, Genre
 
 def save_image(url, path):
     """
@@ -24,20 +25,37 @@ def save_image(url, path):
     image.retrieve(url, path)
     print ' [+image] ' + path
     return
-
+# previously used, was may be giving some problems
 #http://stackoverflow.com/questions/2546207/does-sqlalchemy-have-an-equivalent-of-djangos-get-or-create
-def get_or_create(session, model, defaults=None, **kwargs):
-    instance = session.query(model).filter_by(**kwargs).first()
+# new one
+# https://gist.github.com/codeb2cc/3302754
 
-    if instance:
-        return instance, False
-    else:
-        params = dict((k, v) for k, v in kwargs.iteritems() if not isinstance(v, ClauseElement))
-        params.update(defaults or {})
-        instance = model(**params)
-        session.add(instance)
-        return instance
+def get_or_create(session, model, defaults={}, **kwargs):
+    try:
+        query = session.query(model).filter_by(**kwargs)
 
+        instance = query.first()
+
+        if instance:
+            return instance, False
+        else:
+            session.begin(nested=True)
+            try:
+                params = dict((k, v) for k, v in kwargs.iteritems() if not isinstance(v, ClauseElement))
+                params.update(defaults)
+                instance = model(**params)
+
+                session.add(instance)
+                session.commit()
+
+                return instance, True
+            except IntegrityError as e:
+                session.rollback()
+                instance = query.one()
+
+                return instance, False
+    except Exception as e:
+        raise e
 # configure Session class with desired options
 Session = sessionmaker()
 
@@ -52,10 +70,6 @@ engine = create_engine('postgresql://{user}:{password}@{host}/{name}'.format(use
                                                                              password=db_password,
                                                                              host=db_host,
                                                                              name=db_name))
-
-# create db if it doesn't exist
-if not database_exists(engine.url):
-    create_database(engine.url)
 
 # associate it with our custom Session class
 Session.configure(bind=engine)
@@ -76,8 +90,7 @@ DB_NAME = credentials.get_db_name()
 network = pylast.LastFMNetwork(api_key=API_KEY,
                                api_secret=API_SECRET,
                                )
-#conn = sqlite3.connect(DB_NAME)
-#c = conn.cursor()
+
 #TODO: evaluate listdir for artists_dir lazily
 for artistName in os.listdir(artists_directory):
     artist_directory = os.path.join(artists_directory, artistName)
@@ -97,13 +110,12 @@ for artistName in os.listdir(artists_directory):
         for audio_file_path in songs_path:
             # Get the title,artist from id3 tags
             audio_file = eyed3.load(audio_file_path)
-            print '>> %s'%audio_file_path
             song_title = audio_file.tag.title
             artist_name = audio_file.tag.artist
             # set some default values
             year = audio_file.tag.getBestDate().year if audio_file.tag.getBestDate() is not None else 2000
-            album_info = 'NULL'
-            artist_info = 'NULL'
+            album_info = 'NOT AVAILABLE'
+            artist_info = 'NOT AVAILABLE'
 
             try:
                 # Make an API call get the track object for artist_name, song_title
@@ -150,61 +162,58 @@ for artistName in os.listdir(artists_directory):
                 # don't insert anything into DB
                 continue
 
-    #album_data.append((song_title, audio_file_path, album_name, artist_name, genre, track_duration, artist_mbid, album_mbid))
-    band = get_or_create(session, Band,
+    band, newly_created = get_or_create(session, Band,
                          name = artist_name,
                          language = 'English',
                          info = artist_info
                          )
-    session.add(band)
-    session.commit()
-    album = get_or_create(session, Album,
+    album, newly_created = get_or_create(session, Album,
                           album_title = album_name,
                           language = 'English',
                           info = album_info,
                           band_id = band.id,
-                          band_info = band.info
+                          band_name = band.name
                           )
-    session.add(album)
-    session.commit()
-    year = get_or_create(session, Year,
+    year, newly_created = get_or_create(session, Year,
                          year = year
                          )
-    session.add(year)
-    session.commit()
-    genre = get_or_create(session, Genre,
+    genre, newly_created = get_or_create(session, Genre,
+                          genre = genre
                           )
-    session.add(genre)
-    session.commit()
-    track = get_or_create(session, Track,
+    track, newly_created = get_or_create(session, Track,
                           file = audio_file_path,
                           title = song_title,
                           album_id = album.id,
+                          genre_id = genre.id,
+                          artist = band.name,
+                          year = year.year,
+                          length = track_duration,
                           )
-    session.add(track)
-    session.commit()
-
     # Fetching the album art, artist's cover images
     artist_id = 'NULL'
 
     album_id = 'NULL'
     try:
-        artist_object = network.get_artist(artist_name)
-        album_object = network.get_album(artist_name, album_name)
-        # mbid == A unique MusicBiz ID exists for an artist as well as an album
+        #artist_object = network.get_artist(artist_name)
+        #album_object = network.get_album(artist_name, album_name)
         artist_id = band.id
         album_id = album.id
         # save the cover images named as their respective mbid
         artist_image_path = os.path.join(artist_directory, artist_id)+'.png'
         album_image_path = os.path.join(album_directory, album_id)+'.png'
+        print artist_image_path
+        print artist_object.get_cover_image()
         save_image(artist_object.get_cover_image(), artist_image_path)
         save_image(album_object.get_cover_image(), album_image_path)
     except Exception as e:
-        print str(e)
+        print str(e),'something wrong with album pics'
 
     # Log it in console just for information
-    print ' [+] %s,%s,%s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre, track_duration,
-                                      artist_mbid, album_mbid)
+    if hasattr(genre, 'genre'):
+        print 'it has and it is %s'%genre.genre
+
+    print ' [+] %s,%s,%s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre.genre, track_duration,
+                                      artist_id, album_id)
 
     # Now that the album_data has attributes of all songs in album_name, we can INSERT into the table
     # reference: https://docs.python.org/2/library/sqlite3.html
