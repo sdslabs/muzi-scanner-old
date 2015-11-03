@@ -158,7 +158,7 @@ for artistName in os.listdir(artists_directory):
 
             except Exception as e:
                 # some unknown(unexpected) error
-                print 'Exception:'+str(e)
+                print 'Unkown Exception while fetcing track attributes:'+str(e)
                 # don't insert anything into DB
                 continue
 
@@ -194,24 +194,18 @@ for artistName in os.listdir(artists_directory):
 
     album_id = 'NULL'
     try:
-        #artist_object = network.get_artist(artist_name)
-        #album_object = network.get_album(artist_name, album_name)
-        artist_id = band.id
-        album_id = album.id
+        artist_object = network.get_artist(artist_name)
+        album_object = network.get_album(artist_name, album_name)
+        artist_id = str(band.id)
+        album_id = str(album.id)
         # save the cover images named as their respective mbid
         artist_image_path = os.path.join(artist_directory, artist_id)+'.png'
         album_image_path = os.path.join(album_directory, album_id)+'.png'
-        print artist_image_path
-        print artist_object.get_cover_image()
         save_image(artist_object.get_cover_image(), artist_image_path)
         save_image(album_object.get_cover_image(), album_image_path)
     except Exception as e:
-        print str(e),'something wrong with album pics'
-
+        print 'Something wrong with cover pics: %s'%str(e)
     # Log it in console just for information
-    if hasattr(genre, 'genre'):
-        print 'it has and it is %s'%genre.genre
-
     print ' [+] %s,%s,%s,%s,%s,%s,%s,%s' % (song_title, audio_file_path, album_name, artist_name, genre.genre, track_duration,
                                       artist_id, album_id)
 
