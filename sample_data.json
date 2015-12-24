@@ -1,8 +1,12 @@
 {
     "DEFAULT": {
-        "lastfm_api_key": "api_key_here",
-        "lastfm_api_secret": "api_secret_here",
-        "db_name": "test.db"
+        "lastfm_api_key": "",
+        "lastfm_api_secret": "",
+        "db_backend": "",
+        "db_name": "",
+        "db_user_name": "",
+        "db_password": "",
+        "db_host": ""
     },
     "PRODUCTION":{
     }

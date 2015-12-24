@@ -1,6 +1,7 @@
-# nefarious-octo-lamp
+# muzi-scanner
 
 This project aims to populate a database with attributes of various songs, given the path to songs root directory.
+The songs can be of either mp3 or mp4 or m4a format.
 
 Songs are placed in a hierarchical directory structure inside the songs root directory as follows: 
 
@@ -22,22 +23,26 @@ Create a data.json file in the project root. It should look something like below
 ```json
 {
     "DEFAULT": {
-        "lastfm_api_key": "your_lastfm_api_key",
-        "lastfm_api_secret": "your_lastfm_api_secret",
-        "db_name": "test.db"
+        "lastfm_api_key": "api_key",
+        "lastfm_api_secret": "api_secret",
+        "db_backend": "mysql",
+        "db_name": "test",
+        "db_user_name": "test",
+        "db_password": "password",
+        "db_host": "local"
     },
     "PRODUCTION":{
     }
 }
 ```
-Since the present database is sqlite, no need to install database backend. Just run the below command to create a database with table SONGS
+After specifying the necessary credentials, run the below command to create database
 
 ```sh
 $ python createdb.py
 ```
-And then run the below command to populate the database.
+And then run the below command to scan
 ```sh
-$ python getnames.py PATH/to/songs/root
+$ python scan.py PATH/to/songs/root/ ~/artist_cover_image_directory/ ~/albums_cover_image_directory/ ~/artist_thumbnail_directory/
 ```
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does it's job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
 

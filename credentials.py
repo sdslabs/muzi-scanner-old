@@ -59,3 +59,6 @@ def get_db_host(data):
 def get_db_password(data):
     return data["db_password"]
 
+@getdata
+def get_db_backend(data):
+    return data["db_backend"]

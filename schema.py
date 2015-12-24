@@ -14,6 +14,8 @@ class Band(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), primary_key=True)
     language = Column(String(255))
+    cover_picture_path = Column(String(255))
+    thumbnail_path = Column(String(255))
     info = Column(String(100000))
 
     __table_args__ = (
@@ -40,6 +42,7 @@ class Album(Base):
     album_title = Column(String(255))
     language = Column(String(255))
     info = Column(String(100000))
+    cover_picture_path = Column(String(255))
     band_id = Column(Integer)#, ForeignKey('bands.id'))
     band_name = Column(String(255))#, ForeignKey('bands.name'))
 
