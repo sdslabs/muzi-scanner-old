@@ -155,8 +155,8 @@ for artistName in os.listdir(artists_directory):
                 year = 2000
                 track_number = '0'
 
-            album_info = 'NOT AVAILABLE'
-            artist_info = 'NOT AVAILABLE'
+            album_info = None
+            artist_info = None
 
             try:
 
