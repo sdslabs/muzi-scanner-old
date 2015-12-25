@@ -12,45 +12,36 @@ class Band(Base):
     __tablename__ = 'bands'
 
     id = Column(Integer, primary_key=True)
-    name = Column(String(255), primary_key=True)
+    name = Column(String(255))
     language = Column(String(255))
-    cover_picture_path = Column(String(255))
-    thumbnail_path = Column(String(255))
     info = Column(String(100000))
-
-    __table_args__ = (
-                      UniqueConstraint('name'),
-                     )
-
 
 class Year(Base):
     __tablename__ = 'years'
     id = Column(Integer, primary_key=True)
-    year = Column(Integer)
+    name = Column(Integer)
 
 
 class Genre(Base):
     __tablename__ = 'genres'
     id = Column(Integer, primary_key=True)
-    genre = Column(String(255))
+    name = Column(String(255))
 
 
 class Album(Base):
     __tablename__ = 'albums'
 
     id = Column(Integer, primary_key=True)
-    album_title = Column(String(255))
+    name = Column(String(255))
     language = Column(String(255))
     info = Column(String(100000))
-    cover_picture_path = Column(String(255))
     band_id = Column(Integer)#, ForeignKey('bands.id'))
     band_name = Column(String(255))#, ForeignKey('bands.name'))
 
-    band = relationship('Band', backref=backref('bands'))
+    band = relationship('Band', backref=backref('albums'))
 
     __table_args__ = (
-                      ForeignKeyConstraint(['band_id','band_name'],['bands.id','bands.name']),
-                      UniqueConstraint('band_id','band_name')
+                      ForeignKeyConstraint(['band_id'],['bands.id']),
                      )
 
 
@@ -61,16 +52,17 @@ class Track(Base):
     file = Column(String(1024))
     title = Column(String(255))
     album_id = Column(Integer, ForeignKey('albums.id'))
+    band_id = Column(Integer, ForeignKey('bands.id'))
     genre_id = Column(Integer, ForeignKey('genres.id'))
     artist = Column(String(100))
     # track number
     track = Column(Integer)
     plays = Column(Integer, default=0)
-    year = Column(Integer)
-    length = Column(Float)
-    creation_time = Column(DateTime, default=func.now())
+    year_id = Column(Integer)
+    length = Column(Integer)
+    creation_time = Column(DateTime, default=func.unix_timestamp(func.now()))
 
 
     album = relationship('Album', backref=backref('tracks'))
-    genre = relationship('Genre', backref=backref('genres'))
-
+    genre = relationship('Genre', backref=backref('tracks'))
+    bands = relationship('Band', backref=backref('tracks'))
