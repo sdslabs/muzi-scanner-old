@@ -1,9 +1,11 @@
 import urllib
+import os
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import ClauseElement
+from schema import Track, Album, Band, Year, Genre
 
 class Utils:
-    def save_image(url, path):
+    def save_image(self, url, path):
         """
         :param url:
         :param path:
@@ -12,7 +14,7 @@ class Utils:
         image = urllib.URLopener()
         image.retrieve(url, path)
 
-    def get_or_create(session, model, **kwargs):
+    def get_or_create(self, session, model, **kwargs):
         try:
             query = session.query(model).filter_by(**kwargs)
 
@@ -21,26 +23,23 @@ class Utils:
             if instance:
                 return instance, False
             else:
-                session.begin(nested=True)
                 try:
                     params = dict((k, v) for k, v in kwargs.iteritems() if not isinstance(v, ClauseElement))
 
                     instance = model(**params)
-
                     session.add(instance)
                     session.commit()
 
                     return instance, True
                 except IntegrityError as e:
-
                     # We have failed to add track, rollback current session and continue
                     session.rollback()
-                    print "\t\t[-]Failed to add, continuing"
+                    print "[-]Failed to add, continuing"
 
         except Exception as e:
             raise e
 
-    def check_if_track_exists(variables, file_path):
+    def check_if_track_exists(self, variables, file_path):
         session = variables.session()
         query = session.query(Track).filter_by(file=file_path)
         instance = query.first()
@@ -51,7 +50,27 @@ class Utils:
         else:
             return False
 
-    def update_model(session, model, id, name, info):
+    def check_if_band_exists(self, variables, name):
+        session = variables.session()
+        query = session.query(Band).filter_by(name=name)
+        instance = query.first()
+        session.close()
+        if instance:
+            return True, instance.id
+        else:
+            return False, None
+
+    def check_if_album_exists(self, variables, name, band_name):
+        session = variables.session()
+        query = session.query(Album).filter_by(name=name, band_name=band_name)
+        instance = query.first()
+        session.close()
+        if instance:
+            return True, instance.id
+        else:
+            return False, None
+
+    def update_model(self, session, model, id, name, info):
         instance = session.query(model).filter_by(id=id).first()
         instance.info = info
         instance.name = name
@@ -60,7 +79,7 @@ class Utils:
 
 
 class Dirs:
-    def __init__(sys_param):
+    def __init__(self, sys_param):
         artists = sys_param.argv[1]
         artists_cover = sys_param.argv[2]
         albums_thumbnail = sys_param.argv[3]
@@ -78,17 +97,17 @@ class Dirs:
 
 
 class Variables:
-    def __init__(sys_param, session, network):
+    def __init__(self, sys_param, session, network):
         self.dirs = Dirs(sys_param)
         self.session = session
         self.network = network
 
-    def add_band(band_id, band_name, is_new):
+    def add_band(self, band_name, is_new, band_id = None):
         self.band_id = band_id
         self.is_band_new = is_new
         self.band_name = band_name
 
-    def add_album(album_id, album_name, is_new):
+    def add_album(self, album_name, is_new, album_id = None):
         self.album_id = album_id
         self.is_album_new = is_new
         self.album_name = album_name

@@ -10,11 +10,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.sql.expression import ClauseElement
 from sqlalchemy import create_engine
 from schema import Track, Album, Band, Year, Genre
-from utils import utils, Vairables
+from utils import utils, Variables
 from pics import pics
 
 class Scanner:
-    def add_track(variables, audio_file_path):
+    def add_track(self, variables, audio_file_path):
         filename_in_database = os.path.relpath(audio_file_path, variables.dirs.base_dir)
         if utils.check_if_track_exists(variables, filename_in_database):
             return
@@ -38,42 +38,62 @@ class Scanner:
             # assuming that audio_file.tag.track_num[0] is in the format '2/15'
             year = int(audio_file['date'][0][:4])
             track_number = int(audio_file['tracknumber'][0].split('/')[0])
+            track_duration = audio_file.info.length
+            genre = audio_file['genre'][0]
+
         except Exception as e:
-            print '\t\t %s' % e
+            print ' %s' % e
             year = 2000
             track_number = '0'
+            genre = 'Unknown'
+            track_duration = 240
 
         try:
             track_object = variables.network.get_track(artist_name, song_title)
             song_title = track_object.get_correction()
 
-            try:
-                artist_object = track_object.get_artist()
-                artist_name = artist_object.get_name()
-                artist_info = artist_object.get_bio_content()
-                if variables.is_band_new:
-                    variables.band_name = band_name
-                    utils.update_model(variables,session(), variables.band_id,
-                                        Band, artist_name, artist_info)
-                    variables.is_band_new = False
-                    pics.get_band_cover(variables)
+            if variables.is_band_new:
+                try:
+                    artist_object = track_object.get_artist()
+                    artist_name = artist_object.get_name()
+                    artist_info = artist_object.get_bio_content()
+
+                    variables.band_name = artist_name
+                    session = variables.session()
+                    band_instance, new = utils.get_or_create(session, Band,
+                                        name=artist_name,
+                                        language='English',
+                                        info=artist_info)
+
+                    variables.add_band(artist_name, False, band_instance.id)
+                    session.close()
                     pics.get_band_thumbnail(variables)
+                    pics.get_band_cover(variables)
 
-            except Exception:
-                pass
+                except Exception as e:
+                    print "[-] Caught exception in new band " + str(e)
+                    pass
 
-            try:
-                album_object = track_object.get_album()
-                album_name = album_object.get_name()
-                album_info = album_object.get_wiki_content()
-                if variables.is_album_new:
-                    variables.album_name = album_name
-                    utils.update_model(variables.session(), variables.album_id,
-                                        Album, album_name, album_info)
-                    variables.is_album_new = False
+            if variables.is_album_new:
+                try:
+                    album_object = track_object.get_album()
+                    album_name = album_object.get_name()
+                    album_info = album_object.get_wiki_content()
+
+                    session = variables.session()
+                    album_instance, new = utils.get_or_create(session, Album,
+                                        name=album_name,
+                                        info=album_info,
+                                        language='English',
+                                        band_id=variables.band_id,
+                                        band_name=variables.band_name)
+                    variables.add_album(album_name, False, album_instance.id)
+                    session.close()
                     pics.get_album_thumbnail(variables)
-            except Exception:
-                pass
+
+                except Exception as e:
+                    print "[-] Caught exception in new album " + str(e)
+                    pass
 
             track_duration = track_object.get_duration()/1000
             genre = track_object.get_top_tags(limit=1)[0].item.name
@@ -84,7 +104,7 @@ class Scanner:
                 track_duration = audio_file.info.length
                 genre = audio_file['genre'][0]
             else:
-                print '\t\t[-]pylast Exception:'+str(e)
+                print '[-]pylast Exception:'+str(e)
 
         except AttributeError as e:
             # AttributeError here occurs when track_object was retrieved
@@ -93,14 +113,32 @@ class Scanner:
             genre = audio_file['genre'][0]
 
         except Exception as e:
-            print '\t\t[-]Unkown Exception while fetcing track attributes:'+str(e)
-            continue
+            print '[-]Unkown Exception while fetching track attributes:'+str(e)
+            pass
 
         session = variables.session()
-        year, new = utils.get_or_create(session, Year,
+
+        # If still new create using folder names
+        if variables.is_band_new:
+            band_instance, new = utils.get_or_create(session, Band,
+                                        name=variables.band_name,
+                                        language='English',
+                                        info=None)
+            variables.add_band(variables.band_name, False, band_instance.id)
+
+        if variables.is_album_new:
+            album_instance, new = utils.get_or_create(session, Album,
+                                        name=variables.album_name,
+                                        info=None,
+                                        language='English',
+                                        band_id=variables.band_id,
+                                        band_name=variables.band_name)
+            variables.add_album(variables.album_name, False, album_instance.id)
+
+        year_instance, new = utils.get_or_create(session, Year,
                                   name = year)
 
-        genre, new = utils.get_or_create(session, Genre,
+        genre_instance, new = utils.get_or_create(session, Genre,
                                    name = genre)
 
         track, new = utils.get_or_create(session, Track,
@@ -108,27 +146,20 @@ class Scanner:
                                    title = song_title,
                                    album_id = variables.album_id,
                                    band_id = variables.band_id,
-                                   genre_id = genre.id,
+                                   genre_id = genre_instance.id,
                                    artist = variables.band_name,
-                                   year_id = year.id,
+                                   year_id = year_instance.id,
                                    length = track_duration,
                                    track = track_number)
         session.close()
-        print '\t\t[+] %s - %s (%s) added' % (variables.band_name, song_title, variables.album_name)
+        print '[+] %s - %s (%s) added' % (variables.band_name, song_title, variables.album_name)
 
 
-    def add_album(variables, artist_dir, album):
-        session = variables.Session()
+    def add_album(self, variables, artist_dir, album):
+        new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)
+        new = not new
+        variables.add_album(album, new, album_id)
 
-        album, new = utils.get_or_create(session, Album,
-                                   name=album_name,
-                                   language='English',
-                                   band_id=variables.band_id,
-                                   band_name=variables.band_name)
-
-        session.close()
-
-        variables.add_album(album, album_name, new)
         album_dir = os.path.join(artist_dir, album)
 
         # Assuming that all songs are of mp3 or m4a or mp4 format
@@ -144,22 +175,17 @@ class Scanner:
             self.add_track(variables, audio_file_path)
 
 
-    def add_band(variables, artist):
+    def add_band(self, variables, artist):
         artist_dir = os.path.join(variables.dirs.artists, artist)
-
-        # Create a new session for current track
-        # This is done so that whole data is not rolled back if there is error
-        session = variables.Session()
-        band, new = utils.get_or_create(session, Band, name=artist, language='English')
-        session.close()
-
-        variables.add_band(band, artist, new)
+        new, band_id = utils.check_if_band_exists(variables, artist)
+        new = not new
+        variables.add_band(artist, new, band_id)
 
         for album in os.listdir(artist_dir):
-            print '\t[+] Adding ' + album
+            print '[+] Adding ' + album
             self.add_album(variables, artist_dir, album)
 
-    def __init__():
+    def __init__(self):
         # Configure Session class with desired options
         Session = sessionmaker()
 
@@ -176,7 +202,9 @@ class Scanner:
                                         user=db_user_name,
                                         password=db_password,
                                         host=db_host,
-                                        name=db_name))
+                                        name=db_name),
+                                        # echo=True
+                                        )
 
         # Associate it with our custom Session class
         Session.configure(bind=engine)
@@ -186,7 +214,7 @@ class Scanner:
         API_SECRET = credentials.get_lastfm_api_secret()
         DB_NAME = credentials.get_db_name()
 
-        variables.network = pylast.LastFMNetwork(api_key=API_KEY,
+        network = pylast.LastFMNetwork(api_key=API_KEY,
                                        api_secret=API_SECRET,)
 
 
@@ -197,11 +225,11 @@ class Scanner:
             /path/to/albums/cover/image directory/ /path/to/artist/thumbnail directory/"""
             sys.exit()
 
-        variables = Variables(sys, session, variables.network)
+        variables = Variables(sys, Session, network)
 
         #TODO: evaluate listdir for artists_dir lazily
         for artist in os.listdir(variables.dirs.artists):
-            print '[+] Adding ' + artist
+            print '[+]>>>> Adding ' + artist
             self.add_band(variables, artist)
 
 # Run

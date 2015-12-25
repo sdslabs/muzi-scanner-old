@@ -5,27 +5,27 @@ from utils import utils
 
 class Pics:
 
-    def get_album_thumbnail(variables):
+    def get_album_thumbnail(self, variables):
         album_object = variables.network.get_album(variables.band_name, variables.album_name)
         album_id = str(variables.album_id)
-        album_image_path = os.path.join(variables.albums_thumbnail, album_id)+'.jpg'
+        album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.jpg'
         utils.save_image(album_object.get_cover_image(), album_image_path)
-        print '\t[+] Added ' + variables.album_name + ' thumbnail'
+        print '[+] Added ' + variables.album_name + ' thumbnail'
 
-    def get_band_thumbnail(variables):
+    def get_band_thumbnail(self, variables):
         artist_object = variables.network.get_artist(variables.band_name)
         artist_id = str(variables.band_id)
         # Save the artist thumbnails
-        artist_thumbnail_path = os.path.join(variables.artist_thumbnail, artist_id)+'.jpg'
+        artist_thumbnail_path = os.path.join(variables.dirs.artist_thumbnail, artist_id)+'.jpg'
         # Note the size argument which returns the url for a smaller image
         utils.save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
-        print '\t[+] Added ' + variables.band_name + ' thumbnail'
+        print '[+] Added ' + variables.band_name + ' thumbnail'
 
-    def get_band_cover(variables):
+    def get_band_cover(self, variables):
         zune_root = 'http://catalog.zune.net/v3.2/en-US/music/artist'
-        response = requests.get(zune_root, payload = { 'q': variables.band_name })
-        artist_cover_path = os.path.join(
-                                variables.artists_cover, str(variables.band_id)) + '.jpg'
+        response = requests.get(zune_root, params = { 'q': variables.band_name })
+        artist_cover_path = os.path.join(variables.dirs.artists_cover,
+                                         str(variables.band_id)) + '.jpg'
 
         if response.status_code == 200:
             xml_tree = ElementTree.fromstring(response.content)
@@ -33,8 +33,9 @@ class Pics:
             ns = { 'a': 'http://www.w3.org/2005/Atom',
                    'zune': 'http://schemas.zune.net/catalog/music/2007/10' }
             try:
-                uuid = xml_tree.find('a:entry', ns).find('a:id').text[9:-1]
-            except Exception:
+                uuid = xml_tree.find('a:entry', ns).find('a:id', ns).text[9:]
+            except Exception as e:
+                print 'Caught exception in cover pic ' + str(e)
                 return
 
             response = requests.get(zune_root + '/' + uuid + '/images')
@@ -50,5 +51,5 @@ class Pics:
                     width = current_width
 
             utils.save_image(url, artist_cover_path)
-
+            print '[+] Added ' + variables.band_name + ' cover'
 pics = Pics()
