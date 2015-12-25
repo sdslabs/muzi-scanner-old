@@ -86,7 +86,7 @@ if len(sys.argv) is not 5:
     /path/to/albums/cover/image directory/ /path/to/artist/thumbnail directory/"""
     sys.exit()
 
-# {arse the arguments
+# Parse the arguments
 artists_directory = sys.argv[1]
 artists_cover_image_directory = sys.argv[2]
 albums_cover_image_directory = sys.argv[3]
@@ -94,6 +94,8 @@ artists_thumbnail_directory = sys.argv[4]
 
 # Convert the path to absolute path
 artists_directory = os.path.abspath(artists_directory)
+# Base dir should be where both English and Hindi songs are present
+base_dir = os.path.abspath(artists_directory + '/..')
 artists_cover_image_directory = os.path.abspath(artists_cover_image_directory)
 albums_cover_image_directory = os.path.abspath(albums_cover_image_directory)
 artists_thumbnail_directory = os.path.abspath(artists_thumbnail_directory)
@@ -135,6 +137,8 @@ for artistName in os.listdir(artists_directory):
                 file_handler = mp3.EasyMP3
             elif file_type is 'm4a':
                 file_handler = easymp4.EasyMP4
+
+            filename_in_database = os.path.relpath(audio_file_path, base_dir)
 
             audio_file = file_handler(audio_file_path)
             song_title = audio_file['title'][0]
@@ -239,7 +243,7 @@ for artistName in os.listdir(artists_directory):
                             name = genre)
 
     track, newly_created = get_or_create(session, Track,
-                          file = audio_file_path,
+                          file = filename_in_database,
                           title = song_title,
                           album_id = album.id,
                           band_id = band.id,
@@ -263,14 +267,14 @@ for artistName in os.listdir(artists_directory):
 
             # save the cover images named as their respective mbid
             artist_image_path = os.path.join(artists_cover_image_directory,
-                                             artist_id)+'.png'
+                                             artist_id)+'.jpg'
 
             album_image_path = os.path.join(albums_cover_image_directory,
-                                            album_id) +'.png'
+                                            album_id) +'.jpg'
 
             # Save the artist thumbnails
             artist_thumbnail_path = os.path.join(artists_thumbnail_directory,
-                                                 artist_id)+'.png'
+                                                 artist_id)+'.jpg'
 
             save_image(artist_object.get_cover_image(), artist_image_path)
             save_image(album_object.get_cover_image(), album_image_path)
