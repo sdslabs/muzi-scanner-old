@@ -19,7 +19,7 @@ class Dirs:
     def __init__(sys_param):
         artists = sys_param.argv[1]
         artists_cover = sys_param.argv[2]
-        albums_cover = sys_param.argv[3]
+        albums_thumbnail = sys_param.argv[3]
         artist_thumbnail = sys_param.argv[4]
 
         # Convert the path to absolute path
@@ -29,7 +29,7 @@ class Dirs:
         self.base_dir = os.path.abspath(artists + '/..')
 
         self.artists_cover = os.path.abspath(artists_cover)
-        self.albums_cover = os.path.abspath(albums_cover)
+        self.albums_thumbnail = os.path.abspath(albums_thumbnail)
         self.artist_thumbnail = os.path.abspath(artist_thumbnail)
 
 
@@ -44,9 +44,10 @@ class Variables:
         self.is_band_new = is_new
         self.band_name = band_name
 
-    def add_album(album_id, is_new):
+    def add_album(album_id, album_name, is_new):
         self.album_id = album_id
         self.is_album_new = is_new
+        self.album_name = album_name
 
 def save_image(url, path):
     """
@@ -56,7 +57,6 @@ def save_image(url, path):
     """
     image = urllib.URLopener()
     image.retrieve(url, path)
-    print '[+image] ' + path
 
 def get_or_create(session, model, **kwargs):
     try:
@@ -81,26 +81,49 @@ def get_or_create(session, model, **kwargs):
 
                 # We have failed to add track, rollback current session and continue
                 session.rollback()
-                print "Failed to add track, continuing"
+                print "\t\t[-]Failed to add, continuing"
 
     except Exception as e:
         raise e
 
-def check_if_track_exists(session, file_path):
+def check_if_track_exists(variables, file_path):
+    session = variables.session()
     query = session.query(Track).filter_by(file=file_path)
     instance = query.first()
+    session.close()
 
     if instance:
         return True
     else:
         return False
 
+def update_model(session, model, id, name, info):
+    instance = session.query(model).filter_by(id=id).first()
+    instance.info = info
+    instance.name = name
+    session.commit()
+    session.close()
+
+def get_album_thumbnail(variables):
+    album_object = variables.network.get_album(variables.band_name, variables.album_name)
+    album_id = str(variables.album_id)
+    album_image_path = os.path.join(albums_thumbnail, album_id)+'.jpg'
+    save_image(album_object.get_cover_image(), album_image_path)
+    print '\t[+] Added ' + variables.album_name + ' thumbnail'
+
+def get_band_thumbnail(variables):
+    artist_object = network.get_artist(variables.band_name)
+    artist_id = str(variables.band_id)
+    # Save the artist thumbnails
+    artist_thumbnail_path = os.path.join(artist_thumbnail, artist_id)+'.jpg'
+    # Note the size argument which returns the url for a smaller image
+    save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
+    print '\t[+] Added ' + variables.band_name + ' thumbnail'
+
+
 def add_track(variables, audio_file_path):
-    session = variables.session()
-
     filename_in_database = os.path.relpath(audio_file_path, variables.dirs.base_dir)
-
-    if check_if_track_exists(session, filename_in_database):
+    if check_if_track_exists(variables, filename_in_database):
         return
 
     file_type = 'mp3' if '.mp3' in audio_file_path else 'm4a'
@@ -111,91 +134,91 @@ def add_track(variables, audio_file_path):
     elif file_type is 'm4a':
         file_handler = easymp4.EasyMP4
 
-
     audio_file = file_handler(audio_file_path)
     song_title = audio_file['title'][0]
     artist_name = audio_file['artist'][0]
 
     try:
-
         # TODO: need to hadle exceptions more carefully here as
         # I dont what might happen in case the format of track number changes
         # TODO: lot of hardcoding, try to find better way
         # assuming that audio_file.tag.track_num[0] is in the format '2/15'
         year = int(audio_file['date'][0][:4])
         track_number = int(audio_file['tracknumber'][0].split('/')[0])
-
     except Exception as e:
-
-        print ">>> %s"%e
+        print '\t\t %s' % e
         year = 2000
         track_number = '0'
 
-    album_info = None
-    artist_info = None
-
     try:
         track_object = network.get_track(artist_name, song_title)
-
         song_title = track_object.get_correction()
-        artist_object = track_object.get_artist()
 
-        artist_name = artist_object.get_name()
-        artist_info = artist_object.get_bio_content()
+        try:
+            artist_object = track_object.get_artist()
+            artist_name = artist_object.get_name()
+            artist_info = artist_object.get_bio_content()
+            if variables.is_band_new:
+                variables.band_name = band_name
+                update_model(variables,session(), variables.band_id, Band, artist_name, artist_info)
+                variables.is_band_new = False
+                get_band_thumbnail(variables)
+        except Exception:
+            pass
 
-        if variables.is_band_new:
-            update_band(variables, artist_name, artist_info)
-            variables.is_band_new = False
-
-        album_object = track_object.get_album()
-        album_name = album_object.get_name()
-        album_info = album_object.get_wiki_content()
-
-        if variables.is_band_new:
-            update_band(variables, album_name, album_info)
-            variables.is_band_new = False
+        try:
+            album_object = track_object.get_album()
+            album_name = album_object.get_name()
+            album_info = album_object.get_wiki_content()
+            if variables.is_album_new:
+                variables.album_name = album_name
+                update_model(variables.session(), variables.album_id, Album, album_name, album_info)
+                variables.is_album_new = False
+                get_album_thumbnail(variables)
+        except Exception:
+            pass
 
         track_duration = track_object.get_duration()/1000
-
         genre = track_object.get_top_tags(limit=1)[0].item.name
-
 
     except pylast.WSError as e:
         if e == 'Track not found':
             # Fallback to track
-            album_name = albumName
             track_duration = audio_file.info.length
             genre = audio_file['genre'][0]
         else:
-            print 'pylast Exception:'+str(e)
+            print '\t\t[-]pylast Exception:'+str(e)
 
     except AttributeError as e:
         # AttributeError here occurs when track_object was retrieved
         # but the album name could not be retrieved
-        album_name = albumName
         track_duration = audio_file.info.length
         genre = audio_file['genre'][0]
 
     except Exception as e:
-        print 'Unkown Exception while fetcing track attributes:'+str(e)
+        print '\t\t[-]Unkown Exception while fetcing track attributes:'+str(e)
         continue
 
-    year, newly_created = get_or_create(session, Year,
-                         name = year)
+    session = variables.session()
+    year, new = get_or_create(session, Year,
+                              name = year)
 
-    genre, newly_created = get_or_create(session, Genre,
-                            name = genre)
+    genre, new = get_or_create(session, Genre,
+                               name = genre)
 
-    track, newly_created = get_or_create(session, Track,
-                          file = filename_in_database,
-                          title = song_title,
-                          album_id = album.id,
-                          band_id = band.id,
-                          genre_id = genre.id,
-                          artist = band.name,
-                          year_id = year.id,
-                          length = track_duration,
-                          track = track_number)
+    track, new = get_or_create(session, Track,
+                               file = filename_in_database,
+                               title = song_title,
+                               album_id = variables.album_id,
+                               band_id = variables.band_id,
+                               genre_id = genre.id,
+                               artist = variables.band_name,
+                               year_id = year.id,
+                               length = track_duration,
+                               track = track_number)
+    session.close()
+    print '\t\t[+] %s - %s (%s) added' % (variables.band_name, song_title, variables.album_name)
+
 
 def add_album(variables, artist_dir, album):
     session = variables.Session()
@@ -208,11 +231,7 @@ def add_album(variables, artist_dir, album):
 
     session.close()
 
-    variables.add_album(album, new)
-
-    # Album_data is a list which will hold the attributes of
-    # all songs of the album, to write to db one album at a time
-    album_data = []
+    variables.add_album(album, album_name, new)
     album_dir = os.path.join(artist_dir, album)
 
     # Assuming that all songs are of mp3 or m4a or mp4 format
@@ -234,17 +253,14 @@ def add_band(variables, artist):
     # Create a new session for current track
     # This is done so that whole data is not rolled back if there is error
     session = variables.Session()
-
     band, new = get_or_create(session, Band, name=artist, language='English')
-
     session.close()
 
     variables.add_band(band, artist, new)
 
     for album in os.listdir(artist_dir):
+        print '\t[+] Adding ' + album
         add_album(variables, artist_dir, album)
-
-
 
 def init():
     # Configure Session class with desired options
@@ -288,43 +304,5 @@ def init():
 
     #TODO: evaluate listdir for artists_dir lazily
     for artist in os.listdir(variables.dirs.artists):
+        print '[+] Adding ' + artist
         add_band(variables, artist)
-
-        # Fetching the album art, artist's cover images
-        artist_id = 'NULL'
-
-        album_id = 'NULL'
-
-        if newly_created:
-            try:
-                artist_object = network.get_artist(artist_name)
-                album_object = network.get_album(artist_name, album_name)
-                artist_id = str(band.id)
-                album_id = str(album.id)
-
-                # save the cover images named as their respective mbid
-                artist_image_path = os.path.join(artists_cover,
-                                                 artist_id)+'.jpg'
-
-                album_image_path = os.path.join(albums_cover,
-                                                album_id) +'.jpg'
-
-                # Save the artist thumbnails
-                artist_thumbnail_path = os.path.join(artist_thumbnail,
-                                                     artist_id)+'.jpg'
-
-                save_image(artist_object.get_cover_image(), artist_image_path)
-                save_image(album_object.get_cover_image(), album_image_path)
-
-                # Note the size argument which returns the url for a smaller image
-                save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
-
-                session.add(band)
-                session.add(album)
-                session.commit()
-
-            except Exception as e:
-                print 'Error with cover pics: %s'%str(e)
-
-        # Log it in console just for information
-        print '[+] %s - %s (%s) added' % (artist_name, song_title, album_name)
