@@ -15,6 +15,39 @@ from sqlalchemy import create_engine
 from schema import Track, Album, Band, Year, Genre
 
 
+class Dirs:
+    def __init__(sys_param):
+        artists = sys_param.argv[1]
+        artists_cover = sys_param.argv[2]
+        albums_cover = sys_param.argv[3]
+        artist_thumbnail = sys_param.argv[4]
+
+        # Convert the path to absolute path
+        self.artists = os.path.abspath(artists)
+
+        # Base dir should be where both English and Hindi songs are present
+        self.base_dir = os.path.abspath(artists + '/..')
+
+        self.artists_cover = os.path.abspath(artists_cover)
+        self.albums_cover = os.path.abspath(albums_cover)
+        self.artist_thumbnail = os.path.abspath(artist_thumbnail)
+
+
+class Variables:
+    def __init__(sys_param, session, network):
+        self.dirs = Dirs(sys_param)
+        self.session = session
+        self.network = network
+
+    def add_band(band_id, band_name, is_new):
+        self.band_id = band_id
+        self.is_band_new = is_new
+        self.band_name = band_name
+
+    def add_album(album_id, is_new):
+        self.album_id = album_id
+        self.is_album_new = is_new
+
 def save_image(url, path):
     """
     :param url:
@@ -24,11 +57,6 @@ def save_image(url, path):
     image = urllib.URLopener()
     image.retrieve(url, path)
     print '[+image] ' + path
-
-# Previously used, was may be giving some problems
-# http://stackoverflow.com/questions/2546207/does-sqlalchemy-have-an-equivalent-of-djangos-get-or-create
-# new one
-# https://gist.github.com/codeb2cc/3302754
 
 def get_or_create(session, model, **kwargs):
     try:
@@ -58,183 +86,99 @@ def get_or_create(session, model, **kwargs):
     except Exception as e:
         raise e
 
-# Configure Session class with desired options
-Session = sessionmaker()
+def check_if_track_exists(session, file_path):
+    query = session.query(Track).filter_by(file=file_path)
+    instance = query.first()
 
-# Import credentials
-db_name = credentials.get_db_name()
-db_user_name = credentials.get_db_user_name()
-db_host = credentials.get_db_host()
-db_password = credentials.get_db_password()
-db_backend = credentials.get_db_backend()
+    if instance:
+        return True
+    else:
+        return False
 
-# Later, we create the engine
-engine = create_engine('{backend}://{user}:{password}@{host}/{name}?charset=utf8'
-                        .format(backend=db_backend,
-                                user=db_user_name,
-                                password=db_password,
-                                host=db_host,
-                                name=db_name))
+def add_track(variables, audio_file_path):
+    session = variables.session()
 
-# Associate it with our custom Session class
-Session.configure(bind=engine)
+    filename_in_database = os.path.relpath(audio_file_path, variables.dirs.base_dir)
 
-# Arguments check
-if len(sys.argv) is not 5:
-    print
-    """Usage: $ python scan.py /path/to/songs/ /path/to/artists/cover/image directory/
-    /path/to/albums/cover/image directory/ /path/to/artist/thumbnail directory/"""
-    sys.exit()
+    if check_if_track_exists(session, filename_in_database):
+        return
 
-# Parse the arguments
-artists_directory = sys.argv[1]
-artists_cover_image_directory = sys.argv[2]
-albums_cover_image_directory = sys.argv[3]
-artists_thumbnail_directory = sys.argv[4]
+    file_type = 'mp3' if '.mp3' in audio_file_path else 'm4a'
 
-# Convert the path to absolute path
-artists_directory = os.path.abspath(artists_directory)
-# Base dir should be where both English and Hindi songs are present
-base_dir = os.path.abspath(artists_directory + '/..')
-artists_cover_image_directory = os.path.abspath(artists_cover_image_directory)
-albums_cover_image_directory = os.path.abspath(albums_cover_image_directory)
-artists_thumbnail_directory = os.path.abspath(artists_thumbnail_directory)
+    # Get the title,artist from id3 tags
+    if file_type is 'mp3':
+        file_handler = mp3.EasyMP3
+    elif file_type is 'm4a':
+        file_handler = easymp4.EasyMP4
 
-# API Credentials
-API_KEY = credentials.get_lastfm_api_key()
-API_SECRET = credentials.get_lastfm_api_secret()
-DB_NAME = credentials.get_db_name()
 
-network = pylast.LastFMNetwork(api_key=API_KEY,
-                               api_secret=API_SECRET,)
+    audio_file = file_handler(audio_file_path)
+    song_title = audio_file['title'][0]
+    artist_name = audio_file['artist'][0]
 
-#TODO: evaluate listdir for artists_dir lazily
-for artistName in os.listdir(artists_directory):
+    try:
 
-    artist_directory = os.path.join(artists_directory, artistName)
+        # TODO: need to hadle exceptions more carefully here as
+        # I dont what might happen in case the format of track number changes
+        # TODO: lot of hardcoding, try to find better way
+        # assuming that audio_file.tag.track_num[0] is in the format '2/15'
+        year = int(audio_file['date'][0][:4])
+        track_number = int(audio_file['tracknumber'][0].split('/')[0])
 
-    for albumName in os.listdir(artist_directory):
+    except Exception as e:
 
-        # Album_data is a list which will hold the attributes of
-        # all songs of the album, to write to db one album at a time
-        album_data = []
-        album_directory = os.path.join(artist_directory, albumName)
+        print ">>> %s"%e
+        year = 2000
+        track_number = '0'
 
-        # Assuming that all songs are of mp3 or m4a or mp4 format
-        glob_parameters = [os.path.join(album_directory,ext) for ext in ['*.mp3','*.m4a','*.mp4']]
+    album_info = None
+    artist_info = None
 
-        # Songs_path will contain the absolute path to every mp3 file in album_directory
-        # reference: http://www.diveintopython.net/file_handling/os_module.html
-        songs_path = []
-        for glob_parameter in glob_parameters:
-            songs_path.extend(glob.glob(glob_parameter))
+    try:
+        track_object = network.get_track(artist_name, song_title)
 
-        for audio_file_path in songs_path:
-            file_type = 'mp3' if '.mp3' in audio_file_path else 'm4a'
+        song_title = track_object.get_correction()
+        artist_object = track_object.get_artist()
 
-            # Get the title,artist from id3 tags
-            if file_type is 'mp3':
-                file_handler = mp3.EasyMP3
-            elif file_type is 'm4a':
-                file_handler = easymp4.EasyMP4
+        artist_name = artist_object.get_name()
+        artist_info = artist_object.get_bio_content()
 
-            filename_in_database = os.path.relpath(audio_file_path, base_dir)
+        if variables.is_band_new:
+            update_band(variables, artist_name, artist_info)
+            variables.is_band_new = False
 
-            audio_file = file_handler(audio_file_path)
-            song_title = audio_file['title'][0]
-            artist_name = audio_file['artist'][0]
+        album_object = track_object.get_album()
+        album_name = album_object.get_name()
+        album_info = album_object.get_wiki_content()
 
-            try:
+        if variables.is_band_new:
+            update_band(variables, album_name, album_info)
+            variables.is_band_new = False
 
-                # TODO: need to hadle exceptions more carefully here as
-                # I dont what might happen in case the format of track number changes
-                # TODO: lot of hardcoding, try to find better way
-                # assuming that audio_file.tag.track_num[0] is in the format '2/15'
-                year = int(audio_file['date'][0][:4])
-                track_number = int(audio_file['tracknumber'][0].split('/')[0])
+        track_duration = track_object.get_duration()/1000
 
-            except Exception as e:
+        genre = track_object.get_top_tags(limit=1)[0].item.name
 
-                print ">>> %s"%e
-                year = 2000
-                track_number = '0'
 
-            album_info = None
-            artist_info = None
+    except pylast.WSError as e:
+        if e == 'Track not found':
+            # Fallback to track
+            album_name = albumName
+            track_duration = audio_file.info.length
+            genre = audio_file['genre'][0]
+        else:
+            print 'pylast Exception:'+str(e)
 
-            try:
+    except AttributeError as e:
+        # AttributeError here occurs when track_object was retrieved
+        # but the album name could not be retrieved
+        album_name = albumName
+        track_duration = audio_file.info.length
+        genre = audio_file['genre'][0]
 
-                # Make an API call get the track object for artist_name, song_title
-                track_object = network.get_track(artist_name, song_title)
-
-                # Get the required attributes(Title, Artist, Duration, Genre, Album)
-                song_title = track_object.get_correction()
-                artist_object = track_object.get_artist()
-
-                artist_name = artist_object.get_name()
-                artist_info = artist_object.get_bio_content()
-
-                # Convert to seconds from milliseconds
-                track_duration = track_object.get_duration()/1000
-
-                # Get_top_tags returns a list of TopItems
-                # Each TopItem has item and weight attributes
-                # genre can be obtained by accessing the item.name attribute
-                genre = track_object.get_top_tags(limit=1)[0].item.name
-
-                # If the album is not found, an exception is raised, and attributes are
-                # obtained from id3 tags
-                album_object = track_object.get_album()
-                album_name = album_object.get_name()
-                album_info = album_object.get_wiki_content()
-
-            except pylast.WSError as e:
-                if e == 'Track not found':
-
-                    # This means the track is not found , may be a hindi song
-                    # hence fetch attributes from id3 tags
-                    album_name = albumName
-                    track_duration = audio_file.info.length
-                    genre = audio_file['genre'][0]
-                else:
-                    print 'pylast Exception:'+str(e)
-
-            except AttributeError as e:
-
-                # AttributeError here occurs when track_object was retrieved
-                # BUT the album name could not be retrieved
-                # Hence, fall back to using folder names to get album_name attribute
-                # Album, Duration, Genre
-                album_name = albumName
-                track_duration = audio_file.info.length
-                genre = audio_file['genre'][0]
-
-            except Exception as e:
-
-                # Some unknown(unexpected) error
-                print 'Unkown Exception while fetcing track attributes:'+str(e)
-
-                # Don't insert anything into DB
-                continue
-
-    # Newly_created is True if the object is newly created
-    print '>>>>>', artist_name
-
-    # Create a new session for current track
-    # This is done so that whole data is not rolled back if there is error
-    session = Session()
-
-    band, newly_created = get_or_create(session, Band,
-                         name = artist_name,
-                         language = 'English',
-                         info = artist_info)
-
-    album, newly_created = get_or_create(session, Album,
-                          name = album_name,
-                          language = 'English',
-                          info = album_info,
-                          band_id = band.id,
-                          band_name = band.name)
+    except Exception as e:
+        print 'Unkown Exception while fetcing track attributes:'+str(e)
+        continue
 
     year, newly_created = get_or_create(session, Year,
                          name = year)
@@ -253,44 +197,134 @@ for artistName in os.listdir(artists_directory):
                           length = track_duration,
                           track = track_number)
 
-    # Fetching the album art, artist's cover images
-    artist_id = 'NULL'
+def add_album(variables, artist_dir, album):
+    session = variables.Session()
 
-    album_id = 'NULL'
+    album, new = get_or_create(session, Album,
+                               name=album_name,
+                               language='English',
+                               band_id=variables.band_id,
+                               band_name=variables.band_name)
 
-    if newly_created:
-        try:
-            artist_object = network.get_artist(artist_name)
-            album_object = network.get_album(artist_name, album_name)
-            artist_id = str(band.id)
-            album_id = str(album.id)
+    session.close()
 
-            # save the cover images named as their respective mbid
-            artist_image_path = os.path.join(artists_cover_image_directory,
-                                             artist_id)+'.jpg'
+    variables.add_album(album, new)
 
-            album_image_path = os.path.join(albums_cover_image_directory,
-                                            album_id) +'.jpg'
+    # Album_data is a list which will hold the attributes of
+    # all songs of the album, to write to db one album at a time
+    album_data = []
+    album_dir = os.path.join(artist_dir, album)
 
-            # Save the artist thumbnails
-            artist_thumbnail_path = os.path.join(artists_thumbnail_directory,
+    # Assuming that all songs are of mp3 or m4a or mp4 format
+    glob_parameters = [os.path.join(album_dir,ext) for ext in ['*.mp3','*.m4a','*.mp4']]
+
+    # Songs_path will contain the absolute path to every mp3 file in album_directory
+    # reference: http://www.diveintopython.net/file_handling/os_module.html
+    songs_path = []
+    for glob_parameter in glob_parameters:
+        songs_path.extend(glob.glob(glob_parameter))
+
+    for audio_file_path in songs_path:
+        add_track(variables, audio_file_path)
+
+
+def add_band(variables, artist):
+    artist_dir = os.path.join(variables.dirs.artists, artist)
+
+    # Create a new session for current track
+    # This is done so that whole data is not rolled back if there is error
+    session = variables.Session()
+
+    band, new = get_or_create(session, Band, name=artist, language='English')
+
+    session.close()
+
+    variables.add_band(band, artist, new)
+
+    for album in os.listdir(artist_dir):
+        add_album(variables, artist_dir, album)
+
+
+
+def init():
+    # Configure Session class with desired options
+    Session = sessionmaker()
+
+    # Import credentials
+    db_name = credentials.get_db_name()
+    db_user_name = credentials.get_db_user_name()
+    db_host = credentials.get_db_host()
+    db_password = credentials.get_db_password()
+    db_backend = credentials.get_db_backend()
+
+    # Later, we create the engine
+    engine = create_engine('{backend}://{user}:{password}@{host}/{name}?charset=utf8'
+                            .format(backend=db_backend,
+                                    user=db_user_name,
+                                    password=db_password,
+                                    host=db_host,
+                                    name=db_name))
+
+    # Associate it with our custom Session class
+    Session.configure(bind=engine)
+
+    # API Credentials
+    API_KEY = credentials.get_lastfm_api_key()
+    API_SECRET = credentials.get_lastfm_api_secret()
+    DB_NAME = credentials.get_db_name()
+
+    network = pylast.LastFMNetwork(api_key=API_KEY,
+                                   api_secret=API_SECRET,)
+
+
+    # Arguments check
+    if len(sys.argv) is not 5:
+        print
+        """Usage: $ python scan.py /path/to/songs/ /path/to/artists/cover/image directory/
+        /path/to/albums/cover/image directory/ /path/to/artist/thumbnail directory/"""
+        sys.exit()
+
+    variables = Variables(sys, session, network)
+
+    #TODO: evaluate listdir for artists_dir lazily
+    for artist in os.listdir(variables.dirs.artists):
+        add_band(variables, artist)
+
+        # Fetching the album art, artist's cover images
+        artist_id = 'NULL'
+
+        album_id = 'NULL'
+
+        if newly_created:
+            try:
+                artist_object = network.get_artist(artist_name)
+                album_object = network.get_album(artist_name, album_name)
+                artist_id = str(band.id)
+                album_id = str(album.id)
+
+                # save the cover images named as their respective mbid
+                artist_image_path = os.path.join(artists_cover,
                                                  artist_id)+'.jpg'
 
-            save_image(artist_object.get_cover_image(), artist_image_path)
-            save_image(album_object.get_cover_image(), album_image_path)
+                album_image_path = os.path.join(albums_cover,
+                                                album_id) +'.jpg'
 
-            # Note the size argument which returns the url for a smaller image
-            save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
+                # Save the artist thumbnails
+                artist_thumbnail_path = os.path.join(artist_thumbnail,
+                                                     artist_id)+'.jpg'
 
-            session.add(band)
-            session.add(album)
-            session.commit()
+                save_image(artist_object.get_cover_image(), artist_image_path)
+                save_image(album_object.get_cover_image(), album_image_path)
 
-        except Exception as e:
-            print 'Error with cover pics: %s'%str(e)
+                # Note the size argument which returns the url for a smaller image
+                save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
 
-    # Log it in console just for information
-    print '[+] %s - %s (%s) added' % (artist_name, song_title, album_name)
+                session.add(band)
+                session.add(album)
+                session.commit()
 
-# Close the connection as the db is now populated
-session.close()
+            except Exception as e:
+                print 'Error with cover pics: %s'%str(e)
+
+        # Log it in console just for information
+        print '[+] %s - %s (%s) added' % (artist_name, song_title, album_name)
