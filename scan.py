@@ -119,7 +119,7 @@ for artistName in os.listdir(artists_directory):
         album_directory = os.path.join(artist_directory, albumName)
 
         # Assuming that all songs are of mp3 or m4a or mp4 format
-        glob_parameters = [os.path.join(album_directory,ext) for ext in ['*.mp3','*.m4a','.mp4']]
+        glob_parameters = [os.path.join(album_directory,ext) for ext in ['*.mp3','*.m4a','*.mp4']]
 
         # Songs_path will contain the absolute path to every mp3 file in album_directory
         # reference: http://www.diveintopython.net/file_handling/os_module.html
