@@ -194,17 +194,24 @@ class Scanner:
         artists_cover = variables.dirs.artists_cover
         artist_thumbnail = variables.dirs.artist_thumbnail
         albums_thumbnail = variables.dirs.albums_thumbnail
+
         downloader = [pics.get_band_cover, pics.get_band_thumbnail, pics.get_album_thumbnail]
+
         iterable_list = [(Band, artists_cover), (Band, artist_thumbnail), (Album, albums_thumbnail)]
-        for index,(model, directory) in enumerate(iterable_list):
-            models_with_image = [img.strip('.jpg') for img in os.listdir(directory)]
+
+        for index, (model, directory) in enumerate(iterable_list):
+            # Find all model ids which are already downloaded
+            model_ids_with_image = [img.strip('.jpg') for img in os.listdir(directory)]
+            # Find the contra model set for the above list
             models_without_image = variables.session().query(model).filter\
-                                             (~model.id.in_(models_with_image)).all()
+                                             (~model.id.in_(model_ids_with_image)).all()
+
             for model in models_without_image:
                 if model.__class__ is Band:
                     variables.add_band(model.name, False, model.id)
                     variables.add_album(None, False, None)
                 elif model.__class__ is Album:
+                    # Both album, band variables are required to download album related images
                     variables.add_band(model.band_name, False, model.band_id)
                     variables.add_album(model.name, False, model.id)
                 downloader[index](variables)
