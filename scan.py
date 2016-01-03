@@ -38,7 +38,7 @@ class Scanner:
             # assuming that audio_file.tag.track_num[0] is in the format '2/15'
             year = int(audio_file['date'][0][:4])
             track_number = int(audio_file['tracknumber'][0].split('/')[0])
-            track_duration = audio_file.info.length
+            track_duration = int(audio_file.info.length)
             genre = audio_file['genre'][0]
 
         except Exception as e:
@@ -95,7 +95,11 @@ class Scanner:
                     print "[-] Caught exception in new album " + str(e)
                     pass
 
-            track_duration = track_object.get_duration()/1000
+            track_duration_from_pylast = track_object.get_duration()/1000
+            # Track_duration has been assigned either 240 or the appropriate value from file tag
+            # so if track_duration_from_pylast is 0 then track_duration will be used
+            track_duration = track_duration_from_pylast if(track_duration_from_pylast is not 0)\
+                                                else track_duration if track_duration!=0 else 240
             genre = track_object.get_top_tags(limit=1)[0].item.name
 
         except pylast.WSError as e:
