@@ -1,5 +1,6 @@
 import os
 import sys
+import argparse
 import pylast
 import glob
 import credentials
@@ -189,7 +190,29 @@ class Scanner:
             print '[+] Adding ' + album
             self.add_album(variables, artist_dir, album)
 
-    def __init__(self):
+    def download_missing_images(self, variables):
+        artists_cover = variables.dirs.artists_cover
+        artist_thumbnail = variables.dirs.artist_thumbnail
+        albums_thumbnail = variables.dirs.albums_thumbnail
+        downloader = [pics.get_band_cover, pics.get_band_thumbnail, pics.get_album_thumbnail]
+        iterable_list = [(Band, artists_cover), (Band, artist_thumbnail), (Album, albums_thumbnail)]
+        for index,(model, directory) in enumerate(iterable_list):
+            models_with_image = [img.strip('.jpg') for img in os.listdir(directory)]
+            models_without_image = variables.session().query(model).filter\
+                                             (~model.id.in_(models_with_image)).all()
+            for model in models_without_image:
+                if model.__class__ is Band:
+                    variables.add_band(model.name, False, model.id)
+                    variables.add_album(None, False, None)
+                elif model.__class__ is Album:
+                    variables.add_band(model.band_name, False, model.band_id)
+                    variables.add_album(model.name, False, model.id)
+                downloader[index](variables)
+
+
+
+    def __init__(self, arguments):
+
         # Configure Session class with desired options
         Session = sessionmaker()
 
@@ -221,20 +244,38 @@ class Scanner:
         network = pylast.LastFMNetwork(api_key=API_KEY,
                                        api_secret=API_SECRET,)
 
+        variables = Variables(arguments, Session, network)
+        if arguments.fix_missing:
+            self.download_missing_images(variables)
+        else:
+            #TODO: evaluate listdir for artists_dir lazily
+            for artist in os.listdir(variables.dirs.artists):
+                print '[+]>>>> Adding ' + artist
+                self.add_band(variables, artist)
 
-        # Arguments check
-        if len(sys.argv) is not 5:
-            print
-            """Usage: $ python scan.py /path/to/songs/ /path/to/artists/cover/image directory/
-            /path/to/albums/cover/image directory/ /path/to/artist/thumbnail directory/"""
-            sys.exit()
-
-        variables = Variables(sys, Session, network)
-
-        #TODO: evaluate listdir for artists_dir lazily
-        for artist in os.listdir(variables.dirs.artists):
-            print '[+]>>>> Adding ' + artist
-            self.add_band(variables, artist)
-
-# Run
-Scanner()
+if __name__ == '__main__':
+    # ArgParse reference: https://pymotw.com/2/argparse/
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--fix-missing',
+                      action="store_true",
+                      help='Use this option to download missing artist/album covers/thumnails',
+                      default=False)
+    parser.add_argument('-a',
+                        '--artists-dir',
+                        required=True,
+                        help="Artists' directory")
+    parser.add_argument('-atc',
+                        '--artist-cover-dir',
+                        required=True,
+                        help="Directory to store Artist Cover images")
+    parser.add_argument('-abt',
+                        '--album-thumbnail-dir',
+                        required=True,
+                        help="Directory to store Album thumbnails")
+    parser.add_argument('-att',
+                        '--artist-thumbnail-dir',
+                        required=True,
+                        help="Directory to store Artist thumbnails")
+    arguments = parser.parse_args()
+    # Run
+    Scanner(arguments)

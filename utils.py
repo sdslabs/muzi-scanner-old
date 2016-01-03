@@ -79,11 +79,11 @@ class Utils:
 
 
 class Dirs:
-    def __init__(self, sys_param):
-        artists = sys_param.argv[1]
-        artists_cover = sys_param.argv[2]
-        albums_thumbnail = sys_param.argv[3]
-        artist_thumbnail = sys_param.argv[4]
+    def __init__(self, arguments):
+        artists = arguments.artists_dir
+        artists_cover = arguments.artist_cover_dir
+        albums_thumbnail = arguments.album_thumbnail_dir
+        artist_thumbnail = arguments.artist_thumbnail_dir
 
         # Convert the path to absolute path
         self.artists = os.path.abspath(artists)
@@ -97,8 +97,9 @@ class Dirs:
 
 
 class Variables:
-    def __init__(self, sys_param, session, network):
-        self.dirs = Dirs(sys_param)
+    def __init__(self, arguments, session, network):
+        self.dirs = Dirs(arguments)
+        self.arguments = arguments
         self.session = session
         self.network = network
 
