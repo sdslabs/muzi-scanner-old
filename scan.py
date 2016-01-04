@@ -57,7 +57,7 @@ class Scanner:
                 try:
                     artist_object = track_object.get_artist()
                     artist_name = artist_object.get_name()
-                    artist_info = artist_object.get_bio_content()
+                    artist_info = artist_object.get_bio_summary()
 
                     variables.band_name = artist_name
                     session = variables.session()
