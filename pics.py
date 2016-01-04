@@ -6,6 +6,9 @@ from utils import utils
 class Pics:
 
     def get_album_thumbnail(self, variables):
+        if utils.check_if_album_thumbnail_exists(variables):
+            print '[*] ' + variables.album_name + ' thumbnail already exists'
+            return
         album_object = variables.network.get_album(variables.band_name, variables.album_name)
         album_id = str(variables.album_id)
         album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.jpg'
@@ -13,6 +16,9 @@ class Pics:
         print '[+] Added ' + variables.album_name + ' thumbnail'
 
     def get_band_thumbnail(self, variables):
+        if utils.check_if_artist_thumbnail_exists(variables):
+            print '[*] ' + variables.band_name + ' thumbnail already exists'
+            return
         artist_object = variables.network.get_artist(variables.band_name)
         artist_id = str(variables.band_id)
         # Save the artist thumbnails
@@ -22,6 +28,9 @@ class Pics:
         print '[+] Added ' + variables.band_name + ' thumbnail'
 
     def get_band_cover(self, variables):
+        if utils.check_if_artist_cover_exists(variables):
+            print '[*] ' + variables.band_name + ' cover images already exists'
+            return
         zune_root = 'http://catalog.zune.net/v3.2/en-US/music/artist'
         response = requests.get(zune_root, params = { 'q': variables.band_name })
         artist_cover_path = os.path.join(variables.dirs.artists_cover,

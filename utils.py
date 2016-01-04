@@ -77,6 +77,18 @@ class Utils:
         session.commit()
         session.close()
 
+    def check_if_album_thumbnail_exists(self, variables):
+        return str(variables.album_id) in \
+               [img.strip('.jpg') for img in os.listdir(variables.dirs.albums_thumbnail)]
+
+    def check_if_artist_thumbnail_exists(self, variables):
+        return str(variables.band_id) in \
+               [img.strip('.jpg') for img in os.listdir(variables.dirs.artist_thumbnail)]
+
+    def check_if_artist_cover_exists(self, variables):
+        return str(variables.band_id) in \
+               [img.strip('.jpg') for img in os.listdir(variables.dirs.artists_cover)]
+
 
 class Dirs:
     def __init__(self, arguments):
