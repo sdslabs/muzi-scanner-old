@@ -1,4 +1,5 @@
 import requests
+import pylast
 import os
 from xml.etree import ElementTree
 from utils import utils
@@ -12,7 +13,15 @@ class Pics:
         album_object = variables.network.get_album(variables.band_name, variables.album_name)
         album_id = str(variables.album_id)
         album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.jpg'
-        utils.save_image(album_object.get_cover_image(), album_image_path)
+        try:
+            album_cover_image_url = album_object.get_cover_image()
+        except pylast.WSError as e:
+            if str(e) == 'Album not found':
+                print '[-] '+ variables.album_name + "'s thumbnail not found"
+            else:
+                print '[-]pylast Exception ' + str(e)
+            return
+        utils.save_image(album_cover_image_url, album_image_path)
         print '[+] Added ' + variables.album_name + ' thumbnail'
 
     def get_band_thumbnail(self, variables):
@@ -24,7 +33,14 @@ class Pics:
         # Save the artist thumbnails
         artist_thumbnail_path = os.path.join(variables.dirs.artist_thumbnail, artist_id)+'.jpg'
         # Note the size argument which returns the url for a smaller image
-        utils.save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
+        try:
+            utils.save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
+        except pylast.WSError as e:
+            if str(e) == 'Artist not found':
+                print '[-] '+ variables.band_name + "'s thumbnail not found"
+            else:
+                print '[-]pylast Exception ' + str(e)
+            return
         print '[+] Added ' + variables.band_name + ' thumbnail'
 
     def get_band_cover(self, variables):

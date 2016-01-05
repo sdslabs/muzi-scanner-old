@@ -187,6 +187,9 @@ class Scanner:
         variables.add_band(artist, new, band_id)
 
         for album in os.listdir(artist_dir):
+            # If its not a directory then skip that case
+            if not os.path.isdir(os.path.join(artist_dir,album)):
+                continue
             print '[+] Adding ' + album
             self.add_album(variables, artist_dir, album)
 
