@@ -42,10 +42,15 @@ class Scanner:
             track_duration = int(audio_file.info.length)
             genre = audio_file['genre'][0]
 
+        except KeyError as e:
+            if str(e)=="'TRCK'":
+                track_number = '0'
+            else:
+                print 'Add this expetion case %s'%e
+
         except Exception as e:
             print ' %s' % e
             year = 2000
-            track_number = '0'
             genre = 'Unknown'
             track_duration = 240
 
@@ -104,7 +109,7 @@ class Scanner:
             genre = track_object.get_top_tags(limit=1)[0].item.name
 
         except pylast.WSError as e:
-            if e == 'Track not found':
+            if str(e) == 'Track not found':
                 # Fallback to track
                 track_duration = audio_file.info.length
                 genre = audio_file['genre'][0]
