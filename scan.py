@@ -32,27 +32,7 @@ class Scanner:
         song_title = audio_file['title'][0]
         artist_name = audio_file['artist'][0]
 
-        try:
-            # TODO: need to hadle exceptions more carefully here as
-            # I dont what might happen in case the format of track number changes
-            # TODO: lot of hardcoding, try to find better way
-            # assuming that audio_file.tag.track_num[0] is in the format '2/15'
-            year = int(audio_file['date'][0][:4])
-            track_number = int(audio_file['tracknumber'][0].split('/')[0])
-            track_duration = int(audio_file.info.length)
-            genre = audio_file['genre'][0]
-
-        except KeyError as e:
-            if str(e)=="'TRCK'":
-                track_number = '0'
-            else:
-                print 'Add this expetion case %s'%e
-
-        except Exception as e:
-            print ' %s' % e
-            year = 2000
-            genre = 'Unknown'
-            track_duration = 240
+        self.get_tag_data(variables, audio_file)
 
         try:
             track_object = variables.network.get_track(artist_name, song_title)
@@ -104,25 +84,33 @@ class Scanner:
             track_duration_from_pylast = track_object.get_duration()/1000
             # Track_duration has been assigned either 240 or the appropriate value from file tag
             # so if track_duration_from_pylast is 0 then track_duration will be used
-            track_duration = track_duration_from_pylast if(track_duration_from_pylast is not 0)\
-                                                else track_duration if track_duration!=0 else 240
-            genre = track_object.get_top_tags(limit=1)[0].item.name
+            variables.track_duration = track_duration_from_pylast\
+                                                if(track_duration_from_pylast is not 0)\
+                                                else variables.track_duration\
+                                                if variables.track_duration!=0 else 240
+
+            variables.genre = track_object.get_top_tags(limit=1)[0].item.name
 
         except pylast.WSError as e:
             if str(e) == 'Track not found':
                 # Fallback to track
-                track_duration = audio_file.info.length
-                genre = audio_file['genre'][0]
+                pass
             else:
                 print '[-]pylast Exception:'+str(e)
 
         except AttributeError as e:
             # AttributeError here occurs when track_object was retrieved
             # but the album name could not be retrieved
-            track_duration = audio_file.info.length
-            genre = audio_file['genre'][0]
+            # Nothing to worry, this has been taken care of.
+            pass
+        except IndexError as e:
+            # This occurs when track_object.get_top_tags(limit=1)[0].item.name fails
+            # Has been taken care of
+            if str(e) == 'list index out of range':
+                pass
 
         except Exception as e:
+            # This block is to be looked upon to add exception handling cases
             print '[-]Unkown Exception while fetching track attributes:'+str(e)
             pass
 
@@ -146,10 +134,10 @@ class Scanner:
             variables.add_album(variables.album_name, False, album_instance.id)
 
         year_instance, new = utils.get_or_create(session, Year,
-                                  name = year)
+                                  name = variables.year)
 
         genre_instance, new = utils.get_or_create(session, Genre,
-                                   name = genre)
+                                   name = variables.genre)
 
         track, new = utils.get_or_create(session, Track,
                                    file = filename_in_database,
@@ -159,11 +147,57 @@ class Scanner:
                                    genre_id = genre_instance.id,
                                    artist = variables.band_name,
                                    year_id = year_instance.id,
-                                   length = track_duration,
-                                   track = track_number)
+                                   length = variables.track_duration,
+                                   track = variables.track_number)
         session.close()
         print '[+] %s - %s (%s) added' % (variables.band_name, song_title, variables.album_name)
 
+    def get_tag_data(self, variables, audio_file, year=None, track_number=None,
+                     track_duration=None, genre=None ):
+
+        try:
+
+            year = int(audio_file['date'][0][:4])\
+                                        if year is None else year
+
+            track_number = int(audio_file['tracknumber'][0].split('/')[0])\
+                                        if track_number is None else track_number
+
+            track_duration = int(audio_file.info.length)\
+                                        if track_duration is None else track_duration
+
+            genre = audio_file['genre'][0]\
+                                        if genre is None else genre
+
+            variables.store_tag_data(year,track_number,track_duration, genre)
+            return
+
+        except KeyError as e:
+            if str(e) == "'TRCK'":
+                track_number = '0'
+                variables.store_tag_data(year = year,
+                                         track_number = track_number,
+                                         track_duration = None,
+                                         genre = None)
+                self.get_tag_data(variables = variables,
+                                  audio_file = audio_file,
+                                  year = variables.year,
+                                  track_number = track_number)
+            elif str(e) == "'TDRC'":
+                year = 2000
+                self.get_tag_data(variables = variables,
+                                  audio_file = audio_file,
+                                  year = year)
+            elif str(e) == "'TCON'":
+                genre = "Unknown"
+                self.get_tag_data(variables = variables,
+                                  audio_file = audio_file,
+                                  year = year,
+                                  track_number = track_number,
+                                  track_duration = track_duration,
+                                  genre = genre)
+            else:
+                print str(e)
 
     def add_album(self, variables, artist_dir, album):
         new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)

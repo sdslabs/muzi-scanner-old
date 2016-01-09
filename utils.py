@@ -79,11 +79,11 @@ class Utils:
 
     def check_if_album_thumbnail_exists(self, variables):
         return str(variables.album_id) in \
-               [img.strip('.jpg') for img in os.listdir(variables.dirs.albums_thumbnail)]
+               [img.strip('.png') for img in os.listdir(variables.dirs.albums_thumbnail)]
 
     def check_if_artist_thumbnail_exists(self, variables):
         return str(variables.band_id) in \
-               [img.strip('.jpg') for img in os.listdir(variables.dirs.artist_thumbnail)]
+               [img.strip('.png') for img in os.listdir(variables.dirs.artist_thumbnail)]
 
     def check_if_artist_cover_exists(self, variables):
         return str(variables.band_id) in \
@@ -124,5 +124,12 @@ class Variables:
         self.album_id = album_id
         self.is_album_new = is_new
         self.album_name = album_name
+
+    def store_tag_data(self, year, track_number, track_duration, genre):
+        # for handling exceptions of MP3 Tags
+        self.year = year
+        self.track_number = track_number
+        self.track_duration = track_duration
+        self.genre = genre
 
 utils = Utils()
