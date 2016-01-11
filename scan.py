@@ -57,8 +57,11 @@ class Scanner:
                     pics.get_band_cover(variables)
 
                 except Exception as e:
-                    print "[-] Caught exception in new band " + str(e)
-                    pass
+                    if str(e) == "'NoneType' object has no attribute 'get_name'":
+                        pass
+                    else:
+                        print "[-] Caught exception in new band " + str(e)
+                        pass
 
             if variables.is_album_new:
                 try:
@@ -77,6 +80,11 @@ class Scanner:
                     session.close()
                     pics.get_album_thumbnail(variables)
 
+                except AttributeError as e:
+                    if str(e) == "'NoneType' object has no attribute 'get_name'":
+                        pass
+                    else:
+                        print "[-] Unknown Exception: %s"% str(e)
                 except Exception as e:
                     print "[-] Caught exception in new album " + str(e)
                     pass
@@ -197,7 +205,12 @@ class Scanner:
                                   track_duration = track_duration,
                                   genre = genre)
             else:
-                print str(e)
+                print 'Handle this exception: ' + str(e)
+                sys.exit()
+
+        except Exception as e:
+            print '[-] Unknown Exception: %s'%str(e)
+            sys.exit()
 
     def add_album(self, variables, artist_dir, album):
         new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)
