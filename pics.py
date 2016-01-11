@@ -67,6 +67,7 @@ class Pics:
             xml_tree = ElementTree.fromstring(response.content)
             entries = xml_tree.findall('a:entry', ns)
             width = 0
+            url = None
             # Get widest length cover pic
             for e in entries:
                 instance = e.find('zune:instances', ns).find('zune:imageInstance', ns)
@@ -74,7 +75,9 @@ class Pics:
                 if current_width > width:
                     url = instance.find('zune:url', ns).text
                     width = current_width
-
+            if not url:
+                print '[-] ' + variables.band_name + "'s cover not found"
+                return
             utils.save_image(url, artist_cover_path)
             print '[+] Added ' + variables.band_name + ' cover'
 pics = Pics()
