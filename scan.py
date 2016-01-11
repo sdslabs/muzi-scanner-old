@@ -56,6 +56,10 @@ class Scanner:
                     pics.get_band_thumbnail(variables)
                     pics.get_band_cover(variables)
 
+                except pylast.WSError as e:
+                    # This exception will be taken care of later below
+                    if str(e) == 'The artist you supplied could not be found':
+                        pass
                 except Exception as e:
                     if str(e) == "'NoneType' object has no attribute 'get_name'":
                         pass
@@ -85,6 +89,13 @@ class Scanner:
                         pass
                     else:
                         print "[-] Unknown Exception: %s"% str(e)
+                except pylast.WSError as e:
+                    # As details from the directory structure will be used
+                    if e.details == 'Track not found':
+                        pass
+                    else:
+                        print e.details
+
                 except Exception as e:
                     print "[-] Caught exception in new album " + str(e)
                     pass
@@ -131,6 +142,8 @@ class Scanner:
                                         language='English',
                                         info=None)
             variables.add_band(variables.band_name, False, band_instance.id)
+            pics.get_band_thumbnail(variables)
+            pics.get_band_cover(variables)
 
         if variables.is_album_new:
             album_instance, new = utils.get_or_create(session, Album,
@@ -140,6 +153,8 @@ class Scanner:
                                         band_id=variables.band_id,
                                         band_name=variables.band_name)
             variables.add_album(variables.album_name, False, album_instance.id)
+            pics.get_album_thumbnail(variables)
+
 
         year_instance, new = utils.get_or_create(session, Year,
                                   name = variables.year)
@@ -206,11 +221,9 @@ class Scanner:
                                   genre = genre)
             else:
                 print 'Handle this exception: ' + str(e)
-                sys.exit()
 
         except Exception as e:
             print '[-] Unknown Exception: %s'%str(e)
-            sys.exit()
 
     def add_album(self, variables, artist_dir, album):
         new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)
