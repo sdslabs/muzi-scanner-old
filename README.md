@@ -48,10 +48,20 @@ After specifying the necessary credentials, run the below command to create data
 $ python createdb.py
 ```
 
-And then run the below command to scan
+Scanner Usage Examples
+```sh
+$ python scan.py -a PATH/to/songs/root/ -atc ~/artist_cover_image_directory/ -abt ~/albums_thumb_image_directory/ -att ~/artist_thumbnail_directory/
+```
+To fix missing images use the option ```--fix-missing```
 
 ```sh
-$ python scan.py PATH/to/songs/root/ ~/artist_cover_image_directory/ ~/albums_cover_image_directory/ ~/artist_thumbnail_directory/
+$ python scan.py --fix-missing -a PATH/to/songs/root/ -atc ~/artist_cover_image_directory/ -abt ~/albums_thumb_image_directory/ -att ~/artist_thumbnail_directory/
+```
+
+Scanner Usage Help:
+
+```sh
+$ python scan.py -h
 ```
 
 [//]: # (These are reference links used in the body of this note and get stripped out when the markdown processor does it's job. There is no need to format nicely because it shouldn't be seen. Thanks SO - http://stackoverflow.com/questions/4823468/store-comments-in-markdown-syntax)
