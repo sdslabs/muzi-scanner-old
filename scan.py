@@ -29,29 +29,36 @@ class Scanner:
             file_handler = easymp4.EasyMP4
 
         audio_file = file_handler(audio_file_path)
-        song_title = audio_file['title'][0]
-        artist_name = audio_file['artist'][0]
+        song_title = self.get_song_title_from_tag(audio_file)
 
-        self.get_tag_data(variables, audio_file)
+        band_name = self.get_band_name_from_tag(audio_file)
+
+        year = self.get_year_from_tag(audio_file)
+
+        genre = self.get_genre_from_tag(audio_file)
+
+        track_duration = self.get_track_duration_from_tag(audio_file)
+
+        track_number = self.get_track_number(audio_file)
+
 
         try:
-            track_object = variables.network.get_track(artist_name, song_title)
+            track_object = variables.network.get_track(band_name, song_title)
             song_title = track_object.get_correction()
 
             if variables.is_band_new:
                 try:
                     artist_object = track_object.get_artist()
-                    artist_name = artist_object.get_name()
+                    band_name = artist_object.get_name()
                     artist_info = artist_object.get_bio_summary()
 
-                    variables.band_name = artist_name
                     session = variables.session()
                     band_instance, new = utils.get_or_create(session, Band,
-                                        name=artist_name,
+                                        name=band_name,
                                         language='English',
                                         info=artist_info)
 
-                    variables.add_band(artist_name, False, band_instance.id)
+                    variables.add_band(band_name, False, band_instance.id)
                     session.close()
                     pics.get_band_thumbnail(variables)
                     pics.get_band_cover(variables)
@@ -79,7 +86,7 @@ class Scanner:
                                         info=album_info,
                                         language='English',
                                         band_id=variables.band_id,
-                                        band_name=variables.band_name)
+                                        band_name=band_name)
                     variables.add_album(album_name, False, album_instance.id)
                     session.close()
                     pics.get_album_thumbnail(variables)
@@ -103,12 +110,12 @@ class Scanner:
             track_duration_from_pylast = track_object.get_duration()/1000
             # Track_duration has been assigned either 240 or the appropriate value from file tag
             # so if track_duration_from_pylast is 0 then track_duration will be used
-            variables.track_duration = track_duration_from_pylast\
+            track_duration = track_duration_from_pylast\
                                                 if(track_duration_from_pylast is not 0)\
-                                                else variables.track_duration\
-                                                if variables.track_duration!=0 else 240
+                                                else track_duration\
+                                                if track_duration!=0 else 240
 
-            variables.genre = track_object.get_top_tags(limit=1)[0].item.name
+            genre = track_object.get_top_tags(limit=1)[0].item.name
 
         except pylast.WSError as e:
             if str(e) == 'Track not found':
@@ -138,10 +145,10 @@ class Scanner:
         # If still new create using folder names
         if variables.is_band_new:
             band_instance, new = utils.get_or_create(session, Band,
-                                        name=variables.band_name,
+                                        name=band_name,
                                         language='English',
                                         info=None)
-            variables.add_band(variables.band_name, False, band_instance.id)
+            variables.add_band(band_name, False, band_instance.id)
             pics.get_band_thumbnail(variables)
             pics.get_band_cover(variables)
 
@@ -151,16 +158,16 @@ class Scanner:
                                         info=None,
                                         language='English',
                                         band_id=variables.band_id,
-                                        band_name=variables.band_name)
+                                        band_name=band_name)
             variables.add_album(variables.album_name, False, album_instance.id)
             pics.get_album_thumbnail(variables)
 
 
         year_instance, new = utils.get_or_create(session, Year,
-                                  name = variables.year)
+                                  name = year)
 
         genre_instance, new = utils.get_or_create(session, Genre,
-                                   name = variables.genre)
+                                   name = genre)
 
         track, new = utils.get_or_create(session, Track,
                                    file = filename_in_database,
@@ -168,62 +175,52 @@ class Scanner:
                                    album_id = variables.album_id,
                                    band_id = variables.band_id,
                                    genre_id = genre_instance.id,
-                                   artist = variables.band_name,
+                                   artist = band_name,
                                    year_id = year_instance.id,
-                                   length = variables.track_duration,
-                                   track = variables.track_number)
+                                   length = track_duration,
+                                   track = track_number)
         session.close()
-        print '[+] %s - %s (%s) added' % (variables.band_name, song_title, variables.album_name)
+        print '[+] %s - %s (%s) added' % (band_name, song_title, variables.album_name)
 
-    def get_tag_data(self, variables, audio_file, year=None, track_number=None,
-                     track_duration=None, genre=None ):
-
+    def get_song_title_from_tag(self, audio_file):
         try:
+            song_title = audio_file['title'][0]
+        except:
+            #TODO: Fall back to filename of the song
+            return None
+        return song_title
 
-            year = int(audio_file['date'][0][:4])\
-                                        if year is None else year
+    def get_band_name_from_tag(self, audio_file):
+        try:
+            band_name = audio_file['artist'][0]
+        except:
+            return None
+        return band_name
 
-            track_number = int(audio_file['tracknumber'][0].split('/')[0])\
-                                        if track_number is None else track_number
-
-            track_duration = int(audio_file.info.length)\
-                                        if track_duration is None else track_duration
-
-            genre = audio_file['genre'][0]\
-                                        if genre is None else genre
-
-            variables.store_tag_data(year,track_number,track_duration, genre)
-            return
-
-        except KeyError as e:
-            if str(e) == "'TRCK'":
-                track_number = '0'
-                variables.store_tag_data(year = year,
-                                         track_number = track_number,
-                                         track_duration = None,
-                                         genre = None)
-                self.get_tag_data(variables = variables,
-                                  audio_file = audio_file,
-                                  year = variables.year,
-                                  track_number = track_number)
-            elif str(e) == "'TDRC'":
-                year = 2000
-                self.get_tag_data(variables = variables,
-                                  audio_file = audio_file,
-                                  year = year)
-            elif str(e) == "'TCON'":
-                genre = "Unknown"
-                self.get_tag_data(variables = variables,
-                                  audio_file = audio_file,
-                                  year = year,
-                                  track_number = track_number,
-                                  track_duration = track_duration,
-                                  genre = genre)
-            else:
-                print 'Handle this exception: ' + str(e)
-
-        except Exception as e:
-            print '[-] Unknown Exception: %s'%str(e)
+    def get_year_from_tag(self, audio_file):
+        try:
+            year = int(audio_file['date'][0][:4])
+        except:
+            return 2000
+        return year
+    def get_track_duration_from_tag(self, audio_file):
+        try:
+            track_duration = int(audio_file.info.length)
+        except:
+            track_duration = 240
+        return track_duration
+    def get_genre_from_tag(self, audio_file):
+        try:
+            genre = audio_file['genre'][0]
+        except:
+            genre = "Unknown"
+        return genre
+    def get_track_number(self, audio_file):
+        try:
+            track_number = int(audio_file['tracknumber'][0].split('/')[0])
+        except:
+            track_number = '0'
+        return track_number
 
     def add_album(self, variables, artist_dir, album):
         new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)
