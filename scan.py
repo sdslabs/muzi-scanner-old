@@ -20,75 +20,63 @@ class Scanner:
         if utils.check_if_track_exists(variables, filename_in_database):
             return
 
-        file_type = 'mp3' if '.mp3' in audio_file_path else 'm4a'
+        variables.reset_track_data()
 
-        # Get the title,artist from id3 tags
-        if file_type is 'mp3':
-            file_handler = mp3.EasyMP3
-        elif file_type is 'm4a':
-            file_handler = easymp4.EasyMP4
-
-        audio_file = file_handler(audio_file_path)
-        song_title = self.get_song_title_from_tag(audio_file)
-
-        band_name = self.get_band_name_from_tag(audio_file)
-
-        year = self.get_year_from_tag(audio_file)
-
-        genre = self.get_genre_from_tag(audio_file)
-
-        track_duration = self.get_track_duration_from_tag(audio_file)
-
-        track_number = self.get_track_number(audio_file)
-
+        corrupted_file = self.get_tag_data(variables, audio_file_path)
+        if corrupted_file == "yes":
+            return
 
         try:
-            track_object = variables.network.get_track(band_name, song_title)
-            song_title = track_object.get_correction()
+            track_object = variables.network.get_track(variables.track_data['band_name'],
+                                                       variables.track_data['song_title'])
+
+            self.get_track_data_from_lastfm(variables)
 
             if variables.is_band_new:
                 try:
-                    artist_object = track_object.get_artist()
-                    band_name = artist_object.get_name()
-                    artist_info = artist_object.get_bio_summary()
+
+                    self.get_band_data_from_lastfm(variables, track_object)
 
                     session = variables.session()
-                    band_instance, new = utils.get_or_create(session, Band,
-                                        name=band_name,
-                                        language='English',
-                                        info=artist_info)
 
-                    variables.add_band(band_name, False, band_instance.id)
+                    band_instance, new = utils.get_or_create(session, Band,
+                                        name=variables.track_data['band_name'],
+                                        language='English',
+                                        info=variables.track_data['band_info'])
+
+                    variables.add_band(variables.track_data['band_name'],
+                                       False,
+                                       band_instance.id)
+
                     session.close()
+
                     pics.get_band_thumbnail(variables)
                     pics.get_band_cover(variables)
 
-                except pylast.WSError as e:
-                    # This exception will be taken care of later below
-                    if str(e) == 'The artist you supplied could not be found':
-                        pass
                 except Exception as e:
-                    if str(e) == "'NoneType' object has no attribute 'get_name'":
-                        pass
-                    else:
-                        print "[-] Caught exception in new band " + str(e)
-                        pass
+                    print "[-] Caught exception in new band " + str(e)
+                    pass
 
             if variables.is_album_new:
                 try:
-                    album_object = track_object.get_album()
-                    album_name = album_object.get_name()
-                    album_info = album_object.get_wiki_content()
+
+                    self.get_album_data_from_lastfm(variables, track_object)
 
                     session = variables.session()
+
                     album_instance, new = utils.get_or_create(session, Album,
-                                        name=album_name,
-                                        info=album_info,
+                                        name=variables.track_data['album_name'],
+                                        info=variables.track_data['album_info'],
                                         language='English',
                                         band_id=variables.band_id,
-                                        band_name=band_name)
-                    variables.add_album(album_name, False, album_instance.id)
+                                        band_name=variables.track_data['band_name'])
+
+                    variables.add_album(variables.track_data['album_name'],
+                                        False,
+                                        album_instance.id)
+
                     session.close()
+
                     pics.get_album_thumbnail(variables)
 
                 except AttributeError as e:
@@ -107,15 +95,6 @@ class Scanner:
                     print "[-] Caught exception in new album " + str(e)
                     pass
 
-            track_duration_from_pylast = track_object.get_duration()/1000
-            # Track_duration has been assigned either 240 or the appropriate value from file tag
-            # so if track_duration_from_pylast is 0 then track_duration will be used
-            track_duration = track_duration_from_pylast\
-                                                if(track_duration_from_pylast is not 0)\
-                                                else track_duration\
-                                                if track_duration!=0 else 240
-
-            genre = track_object.get_top_tags(limit=1)[0].item.name
 
         except pylast.WSError as e:
             if str(e) == 'Track not found':
@@ -145,10 +124,13 @@ class Scanner:
         # If still new create using folder names
         if variables.is_band_new:
             band_instance, new = utils.get_or_create(session, Band,
-                                        name=band_name,
+                                        name=variables.band_name,
                                         language='English',
                                         info=None)
-            variables.add_band(band_name, False, band_instance.id)
+            variables.add_band(variables.band_name,
+                               False,
+                               band_instance.id)
+
             pics.get_band_thumbnail(variables)
             pics.get_band_cover(variables)
 
@@ -158,29 +140,123 @@ class Scanner:
                                         info=None,
                                         language='English',
                                         band_id=variables.band_id,
-                                        band_name=band_name)
-            variables.add_album(variables.album_name, False, album_instance.id)
+                                        band_name=variables.band_name)
+            variables.add_album(variables.album_name,
+                                False,
+                                album_instance.id)
+
             pics.get_album_thumbnail(variables)
 
 
         year_instance, new = utils.get_or_create(session, Year,
-                                  name = year)
+                                  name = variables.track_data['year'])
 
         genre_instance, new = utils.get_or_create(session, Genre,
-                                   name = genre)
+                                   name = variables.track_data['genre'])
 
         track, new = utils.get_or_create(session, Track,
                                    file = filename_in_database,
-                                   title = song_title,
+                                   title = variables.track_data['song_title'],
                                    album_id = variables.album_id,
                                    band_id = variables.band_id,
                                    genre_id = genre_instance.id,
-                                   artist = band_name,
+                                   artist = variables.track_data['band_name'],
                                    year_id = year_instance.id,
-                                   length = track_duration,
-                                   track = track_number)
+                                   length = variables.track_data['track_duration'],
+                                   track = variables.track_data['track_number'])
         session.close()
-        print '[+] %s - %s (%s) added' % (band_name, song_title, variables.album_name)
+        print '[+] %s - %s (%s) added' % (variables.band_name,
+                                          variables.track_data['song_title'],
+                                          variables.album_name)
+
+    def get_corrected_song_title(self, track_object):
+        try:
+            song_title = track_object.get_correction()
+        except:
+            return None
+        return song_title
+
+    def get_track_duration_from_lastfm(self, track_object):
+        try:
+            track_duration = track_object.get_duration()/1000
+        except:
+            return None
+        return track_duration if track_duration is not 0 else None
+
+    def get_track_genre_from_lastfm(self, track_object):
+        try:
+            genre = track_object.get_top_tags(limit=1)[0].item.name
+        except:
+            return None
+        return genre
+
+    def get_track_data_from_lastfm(self, variables):
+
+        track_duration = self.get_track_duration_from_lastfm(variables)
+        track_genre = self.get_track_genre_from_lastfm(variables)
+
+        keys = ['track_duration','track_genre']
+        values = [track_duration,track_genre]
+
+        variables.store_track_data(keys, values)
+
+    def get_band_name_from_lastfm(self, artist_object):
+        try:
+            band_name = artist_object.get_name()
+        except:
+            return None
+        return band_name
+
+    def get_band_info_from_lastfm(self, artist_object):
+        try:
+            band_info = artist_object.get_bio_summary()
+        except:
+            return None
+        return band_info
+
+    def get_album_name_from_lastfm(self, album_object):
+        try:
+            album_name = album_object.get_name()
+        except:
+            return None
+        return album_name
+
+    def get_album_info_from_lastfm(self, album_object):
+        try:
+            album_info = album_object.get_wiki_content()
+        except:
+            return None
+        return album_info
+
+    def get_album_data_from_lastfm(self, variables, track_object):
+        try:
+            album_object = track_object.get_album()
+        except:
+            album_object = None
+
+        album_name = self.get_album_name_from_lastfm(album_object)
+        album_info = self.get_album_info_from_lastfm(album_object)
+
+        keys = ['album_name','album_info']
+        values = [album_name, album_info]
+
+        variables.store_track_data(keys,values)
+
+
+    def get_band_data_from_lastfm(self, variables, track_object):
+        try:
+            artist_object = track_object.get_artist()
+        except:
+            artist_object = None
+
+        band_name = self.get_band_name_from_lastfm(artist_object)
+        band_info = self.get_band_info_from_lastfm(artist_object)
+
+        keys = ['band_name','band_info']
+        values = [band_name,band_info]
+
+        variables.store_track_data(keys,values)
+
 
     def get_song_title_from_tag(self, audio_file):
         try:
@@ -215,12 +291,47 @@ class Scanner:
         except:
             genre = "Unknown"
         return genre
-    def get_track_number(self, audio_file):
+    def get_track_number_from_tag(self, audio_file):
         try:
             track_number = int(audio_file['tracknumber'][0].split('/')[0])
         except:
             track_number = '0'
         return track_number
+
+    def get_tag_data(self, variables, audio_file_path):
+
+        file_type = 'mp3' if '.mp3' in audio_file_path else 'm4a'
+
+        # Get the title,artist from id3 tags
+        if file_type is 'mp3':
+            file_handler = mp3.EasyMP3
+        elif file_type is 'm4a':
+            file_handler = easymp4.EasyMP4
+
+        try:
+            audio_file = file_handler(audio_file_path)
+        except Exception as e:
+            print e.message
+            print "File at %s can't be recognised"%audio_file_path
+            return "yes"
+
+        song_title = self.get_song_title_from_tag(audio_file)
+
+        band_name = self.get_band_name_from_tag(audio_file)
+
+        year = self.get_year_from_tag(audio_file)
+
+        genre = self.get_genre_from_tag(audio_file)
+
+        track_duration = self.get_track_duration_from_tag(audio_file)
+
+        track_number = self.get_track_number_from_tag(audio_file)
+
+        keys = ['song_title','band_name','year','genre','track_duration','track_number']
+        values = [song_title, band_name, year, genre, track_duration, track_number]
+
+        variables.store_track_data(keys,values)
+
 
     def add_album(self, variables, artist_dir, album):
         new, album_id = utils.check_if_album_exists(variables, album, variables.band_name)

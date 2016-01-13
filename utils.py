@@ -114,6 +114,7 @@ class Variables:
         self.arguments = arguments
         self.session = session
         self.network = network
+        self.track_data = {'year':2000,'track_number':'0','track_duration':240,'genre':'unknown'}
 
     def add_band(self, band_name, is_new, band_id = None):
         self.band_id = band_id
@@ -125,11 +126,12 @@ class Variables:
         self.is_album_new = is_new
         self.album_name = album_name
 
-    def store_tag_data(self, year, track_number, track_duration, genre):
-        # for handling exceptions of MP3 Tags
-        self.year = year
-        self.track_number = track_number
-        self.track_duration = track_duration
-        self.genre = genre
+    def store_track_data(self, keys, values):
+        for key,value in zip(keys,values):
+            if (value is None and not self.track_data.has_key(key)) or (value is not None):
+                self.track_data[key] = value
+
+    def reset_track_data(self):
+        self.track_data = {'year':2000,'track_number':'0','track_duration':240,'genre':'unknown'}
 
 utils = Utils()
