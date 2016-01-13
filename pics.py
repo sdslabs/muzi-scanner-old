@@ -77,10 +77,8 @@ class Pics:
             # Get widest length cover pic
             for e in entries:
                 instance = e.find('zune:instances', ns).find('zune:imageInstance', ns)
-                current_width = int(instance.find('zune:width', ns).text)
-                if current_width > width:
-                    url = instance.find('zune:url', ns).text
-                    width = current_width
+                url = instance.find('zune:url', ns).text
+                break
             if not url:
                 print '[-] ' + str(variables.band_name) + "'s cover not found"
                 return
