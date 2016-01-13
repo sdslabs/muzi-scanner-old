@@ -12,7 +12,7 @@ class Pics:
             return
         album_object = variables.network.get_album(variables.band_name, variables.album_name)
         album_id = str(variables.album_id)
-        album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.png'
+        album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.jpg'
         try:
             album_cover_image_url = album_object.get_cover_image()
             utils.save_image(album_cover_image_url, album_image_path)
@@ -34,7 +34,7 @@ class Pics:
         artist_object = variables.network.get_artist(variables.band_name)
         artist_id = str(variables.band_id)
         # Save the artist thumbnails
-        artist_thumbnail_path = os.path.join(variables.dirs.artist_thumbnail, artist_id)+'.png'
+        artist_thumbnail_path = os.path.join(variables.dirs.artist_thumbnail, artist_id)+'.jpg'
         # Note the size argument which returns the url for a smaller image
         try:
             utils.save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
