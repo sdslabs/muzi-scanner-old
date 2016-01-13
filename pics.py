@@ -15,13 +15,16 @@ class Pics:
         album_image_path = os.path.join(variables.dirs.albums_thumbnail, album_id)+'.png'
         try:
             album_cover_image_url = album_object.get_cover_image()
+            utils.save_image(album_cover_image_url, album_image_path)
         except pylast.WSError as e:
             if str(e) == 'Album not found':
-                print '[-] '+ variables.album_name + "'s thumbnail not found"
+                print '[-] '+ str(variables.album_name) + "'s thumbnail not found"
             else:
                 print '[-]pylast Exception ' + str(e)
             return
-        utils.save_image(album_cover_image_url, album_image_path)
+        except Exception as e:
+            print "[-] Unknown Exception while fetching album thumbnail: " + str(e)
+            return
         print '[+] Added ' + variables.album_name + ' thumbnail'
 
     def get_band_thumbnail(self, variables):
@@ -37,9 +40,12 @@ class Pics:
             utils.save_image(artist_object.get_cover_image(size=2), artist_thumbnail_path)
         except pylast.WSError as e:
             if str(e) == 'Artist not found':
-                print '[-] '+ variables.band_name + "'s thumbnail not found"
+                print '[-] '+ str(variables.band_name) + "'s thumbnail not found"
             else:
                 print '[-]pylast Exception ' + str(e)
+            return
+        except Exception as e:
+            print "[-] Exception while fetching artist thumbnail: " + str(e)
             return
         print '[+] Added ' + variables.band_name + ' thumbnail'
 
@@ -76,7 +82,7 @@ class Pics:
                     url = instance.find('zune:url', ns).text
                     width = current_width
             if not url:
-                print '[-] ' + variables.band_name + "'s cover not found"
+                print '[-] ' + str(variables.band_name) + "'s cover not found"
                 return
             utils.save_image(url, artist_cover_path)
             print '[+] Added ' + variables.band_name + ' cover'
